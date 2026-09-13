@@ -15,6 +15,7 @@ import authApi from "@/services/authApi";
 import staffApi from "@/services/staffApi";
 import { getErrorMessage } from "@/services/api";
 import { deleteToken, getToken, saveToken } from "@/utils/localStorage";
+import userApi from "@/services/userApi";
 
 const AuthContext = createContext(null);
 
@@ -101,82 +102,79 @@ export function AuthProvider({ children }) {
    * from consuming the same rotating refresh token twice.
    */
 
-  useEffect(() => {
-    let mounted = true;
+ useEffect(() => {
+   let mounted = true;
 
-    const initializeAuth = async () => {
-      const storedToken = getToken();
+   const initializeAuth = async () => {
+     const storedToken = getToken();
 
-      if (!storedToken) {
-        if (mounted) {
-          setIsLoading(false);
-        }
+     if (!storedToken) {
+       if (mounted) {
+         setIsLoading(false);
+       }
 
-        return;
-      }
+       return;
+     }
 
-      if (mounted) {
-        setToken(storedToken);
-      }
+     if (mounted) {
+       setToken(storedToken);
+     }
 
-      try {
-        /*
-         * This request is protected.
-         *
-         * If the access token is expired, Axios will automatically:
-         *
-         * 1. receive 401
-         * 2. refresh the access token
-         * 3. save the new token
-         * 4. retry this request
-         *
-         * AuthContext does NOT manually refresh.
-         */
-        const response = await staffApi.getMyStaffProfile();
+     try {
+       /*
+        * Restore the authenticated user.
+        *
+        * getMe() identifies the user from the access token.
+        * It works for both guests and staff.
+        *
+        * If the access token is expired, the Axios interceptor
+        * should refresh it and retry this request.
+        */
+       const response = await userApi.getMe();
 
-        if (!mounted) {
-          return;
-        }
+       if (!mounted) {
+         return;
+       }
 
-        const profile = response.data?.data;
+       const userData = response.data?.data;
 
-        if (profile) {
-          setStaffProfile(profile);
+       if (!userData) {
+         throw new Error("Unable to restore authenticated user.");
+       }
 
-          setUser({
-            _id: profile.user,
-            role: profile.role,
-            requireSetup: false,
-          });
-        }
-      } catch (error) {
-        /*
-         * If Axios already handled refresh and the request
-         * still fails, the session is no longer usable.
-         */
-        if (!mounted) {
-          return;
-        }
+       setUser(userData);
 
-        deleteToken();
+       /*
+        * Fetch the profile appropriate for the user's role.
+        *
+        * Staff → staff profile
+        * Guest → currently no profile request
+        */
+       await fetchProfile(userData);
+     } catch (error) {
+       if (!mounted) {
+         return;
+       }
 
-        setToken(null);
-        setUser(null);
-        setStaffProfile(null);
-        setGuestProfile(null);
-      } finally {
-        if (mounted) {
-          setIsLoading(false);
-        }
-      }
-    };
+       deleteToken();
 
-    initializeAuth();
+       setToken(null);
+       setUser(null);
+       setStaffProfile(null);
+       setGuestProfile(null);
+     } finally {
+       if (mounted) {
+         setIsLoading(false);
+       }
+     }
+   };
 
-    return () => {
-      mounted = false;
-    };
-  }, []);
+   initializeAuth();
+
+   return () => {
+     mounted = false;
+   };
+ }, [fetchProfile]);
 
   /*
    * ============================================================

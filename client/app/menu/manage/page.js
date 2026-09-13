@@ -25,7 +25,7 @@ import {
   Clock,
   ChevronLeft,
   ChevronRight,
-  Filter
+  Filter,
 } from "lucide-react";
 
 export default function ManageMenuPage() {
@@ -132,8 +132,10 @@ export default function ManageMenuPage() {
   const validate = () => {
     const errs = {};
     if (!formData.name.trim()) errs.name = "Item name is required";
-    if (formData.price === "" || Number(formData.price) < 0) errs.price = "Price cannot be negative";
-    if (formData.preparationTime === "" || Number(formData.preparationTime) < 0) errs.preparationTime = "Prep time must be positive";
+    if (formData.price === "" || Number(formData.price) < 0)
+      errs.price = "Price cannot be negative";
+    if (formData.preparationTime === "" || Number(formData.preparationTime) < 0)
+      errs.preparationTime = "Prep time must be positive";
 
     setFormErrors(errs);
     return Object.keys(errs).length === 0;
@@ -217,35 +219,52 @@ export default function ManageMenuPage() {
           </div>
 
           {/* Categories Filter & Search */}
-          <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4 bg-white p-4 rounded-2xl border border-slate-200/80 shadow-card">
-            <div className="flex items-center gap-1.5 overflow-x-auto pb-2 md:pb-0 scrollbar-none">
-              {["all", "breakfast", "lunch", "dinner", "meat", "beverage"].map((cat) => (
-                <button
-                  key={cat}
-                  type="button"
-                  onClick={() => {
-                    setCategoryFilter(cat);
-                    setPage(1);
-                  }}
-                  className={`px-3 py-1.5 text-xs font-semibold rounded-xl capitalize transition-all cursor-pointer ${
-                    categoryFilter === cat
-                      ? "bg-slate-900 text-white shadow-xs"
-                      : "bg-slate-100 text-slate-600 hover:bg-slate-200"
-                  }`}
-                >
-                  {cat}
-                </button>
-              ))}
-            </div>
-
-            <form onSubmit={handleSearchSubmit} className="max-w-xs w-full">
+          <div className="flex flex-col items-start gap-4 bg-white p-4 rounded-2xl border border-slate-200/80 shadow-card">
+            {" "}
+            {/* Category Filters */}{" "}
+            <div className="w-full overflow-hidden">
+              {" "}
+              <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none overscroll-x-contain">
+                {" "}
+                {[
+                  "all",
+                  "breakfast",
+                  "lunch",
+                  "dinner",
+                  "meat",
+                  "beverage",
+                  "alcohol",
+                  "hot_drink",
+                  "cake",
+                ].map((cat) => (
+                  <button
+                    key={cat}
+                    type="button"
+                    onClick={() => {
+                      setCategoryFilter(cat);
+                      setPage(1);
+                    }}
+                    className={`shrink-0 whitespace-nowrap px-3 py-1.5 text-xs font-semibold rounded-xl capitalize transition-all cursor-pointer ${categoryFilter === cat ? "bg-slate-900 text-white shadow-xs" : "bg-slate-100 text-slate-600 hover:bg-slate-200"}`}
+                  >
+                    {" "}
+                    {cat.replace("_", " ")}{" "}
+                  </button>
+                ))}{" "}
+              </div>{" "}
+            </div>{" "}
+            {/* Search */}{" "}
+            <form
+              onSubmit={handleSearchSubmit}
+              className="w-full md:max-w-xs"
+            >
+              {" "}
               <Input
                 placeholder="Search dishes..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 leftIcon={<Search className="h-4 w-4" />}
-              />
-            </form>
+              />{" "}
+            </form>{" "}
           </div>
 
           {/* Table Card */}
@@ -275,9 +294,14 @@ export default function ManageMenuPage() {
                   </thead>
                   <tbody className="divide-y divide-slate-100 text-xs">
                     {menus.map((item) => (
-                      <tr key={item._id} className="hover:bg-slate-50/70 transition-colors">
+                      <tr
+                        key={item._id}
+                        className="hover:bg-slate-50/70 transition-colors"
+                      >
                         <td className="py-4 px-5">
-                          <p className="font-bold text-slate-900">{item.name}</p>
+                          <p className="font-bold text-slate-900">
+                            {item.name}
+                          </p>
                           <p className="text-[11px] text-slate-400 truncate max-w-xs">
                             {item.description || "—"}
                           </p>
@@ -395,7 +419,8 @@ export default function ManageMenuPage() {
               value={formData.name}
               onChange={(e) => {
                 setFormData({ ...formData, name: e.target.value });
-                if (formErrors.name) setFormErrors({ ...formErrors, name: null });
+                if (formErrors.name)
+                  setFormErrors({ ...formErrors, name: null });
               }}
               error={formErrors.name}
             />
@@ -405,13 +430,18 @@ export default function ManageMenuPage() {
                 label="Category"
                 id="category"
                 value={formData.category}
-                onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+                onChange={(e) =>
+                  setFormData({ ...formData, category: e.target.value })
+                }
                 options={[
                   { value: "breakfast", label: "Breakfast" },
                   { value: "lunch", label: "Lunch" },
                   { value: "dinner", label: "Dinner" },
                   { value: "meat", label: "Meat & Grill" },
                   { value: "beverage", label: "Beverages" },
+                  { value: "alcohol", label: "Alcohol" },
+                  { value: "hot_drink", label: "Hot Drink" },
+                  { value: "cake", label: "Cake" },
                 ]}
               />
 
@@ -422,7 +452,9 @@ export default function ManageMenuPage() {
                 min="0"
                 required
                 value={formData.price}
-                onChange={(e) => setFormData({ ...formData, price: e.target.value })}
+                onChange={(e) =>
+                  setFormData({ ...formData, price: e.target.value })
+                }
                 error={formErrors.price}
               />
             </div>
@@ -434,7 +466,9 @@ export default function ManageMenuPage() {
                 type="number"
                 min="0"
                 value={formData.preparationTime}
-                onChange={(e) => setFormData({ ...formData, preparationTime: e.target.value })}
+                onChange={(e) =>
+                  setFormData({ ...formData, preparationTime: e.target.value })
+                }
                 error={formErrors.preparationTime}
               />
 
@@ -442,7 +476,12 @@ export default function ManageMenuPage() {
                 label="Availability"
                 id="isAvailable"
                 value={formData.isAvailable ? "true" : "false"}
-                onChange={(e) => setFormData({ ...formData, isAvailable: e.target.value === "true" })}
+                onChange={(e) =>
+                  setFormData({
+                    ...formData,
+                    isAvailable: e.target.value === "true",
+                  })
+                }
                 options={[
                   { value: "true", label: "Available" },
                   { value: "false", label: "Unavailable / Sold Out" },
@@ -458,7 +497,9 @@ export default function ManageMenuPage() {
                 rows={3}
                 placeholder="Ingredients, culinary notes, portion size..."
                 value={formData.description}
-                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                onChange={(e) =>
+                  setFormData({ ...formData, description: e.target.value })
+                }
                 className="w-full text-sm bg-white rounded-xl border border-slate-200 p-3 text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900"
               />
             </div>

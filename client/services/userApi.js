@@ -12,8 +12,8 @@ const userApi = {
   },
 
   // Get user details by userId
-  async getMe(userId) {
-    return api.get(`/users/me/${userId}`);
+  async getMe() {
+    return api.get(`/users/me`);
   },
 
   // Block user (Owner / Manager)

@@ -16,6 +16,8 @@ const userRouter = Router();
 // Get all users
 userRouter.get("/", authenticate, permit("owner", "manager"), getAllUsers);
 
+userRouter.get("/me", authenticate, getMe);
+
 // Get a single user
 userRouter.get("/:userId", authenticate, getUser);
 
@@ -34,7 +36,5 @@ userRouter.delete(
   permit("owner", "manager"),
   deleteUser,
 );
-
-userRouter.get("/me/:userId", authenticate, getMe);
 
 export default userRouter;

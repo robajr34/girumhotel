@@ -31,6 +31,8 @@ import {
   Tooltip,
   ResponsiveContainer,
   Legend,
+  LineChart,
+  Line
 } from "recharts";
 import {
   DollarSign,
@@ -45,7 +47,7 @@ import {
   TrendingUp,
   Layers,
   ChevronRight,
-  AlertCircle
+  AlertCircle,
 } from "lucide-react";
 
 export default function DashboardPage() {
@@ -85,9 +87,19 @@ export default function DashboardPage() {
       setLoading(true);
 
       const [bookingsRes, roomsRes, guestsRes] = await Promise.all([
-        bookingApi.getAllBookings({ limit: 100, sortBy: "createdAt", sortOrder: "desc" }).catch(() => ({ data: { data: { bookings: [] } } })),
-        roomApi.getRooms({ limit: 100 }).catch(() => ({ data: { data: { rooms: [] } } })),
-        guestApi.getAllGuests({ limit: 100 }).catch(() => ({ data: { data: { guests: [] } } })),
+        bookingApi
+          .getAllBookings({
+            limit: 100,
+            sortBy: "createdAt",
+            sortOrder: "desc",
+          })
+          .catch(() => ({ data: { data: { bookings: [] } } })),
+        roomApi
+          .getRooms({ limit: 100 })
+          .catch(() => ({ data: { data: { rooms: [] } } })),
+        guestApi
+          .getAllGuests({ limit: 100 })
+          .catch(() => ({ data: { data: { guests: [] } } })),
       ]);
 
       const bookings = bookingsRes.data?.data?.bookings || [];
@@ -149,21 +161,48 @@ export default function DashboardPage() {
       setBookingStatusData([
         { name: "Pending", count: statusCounts.pending, color: "#d97706" },
         { name: "Confirmed", count: statusCounts.confirmed, color: "#059669" },
-        { name: "Checked In", count: statusCounts.checked_in, color: "#3b82f6" },
-        { name: "Checked Out", count: statusCounts.checked_out, color: "#64748b" },
+        {
+          name: "Checked In",
+          count: statusCounts.checked_in,
+          color: "#3b82f6",
+        },
+        {
+          name: "Checked Out",
+          count: statusCounts.checked_out,
+          color: "#64748b",
+        },
         { name: "Cancelled", count: statusCounts.cancelled, color: "#e11d48" },
       ]);
 
       // Pie Chart: Room Status
-      setRoomStatusData([
-        { name: "Available", value: avail || (rooms.length === 0 ? 1 : 0), color: "#059669" },
-        { name: "Occupied", value: occupied, color: "#4f46e5" },
-        { name: "Cleaning", value: cleaning, color: "#d97706" },
-        { name: "Maintenance", value: maint, color: "#e11d48" },
-      ].filter((item) => item.value > 0));
+      setRoomStatusData(
+        [
+          {
+            name: "Available",
+            value: avail || (rooms.length === 0 ? 1 : 0),
+            color: "#059669",
+          },
+          { name: "Occupied", value: occupied, color: "#4f46e5" },
+          { name: "Cleaning", value: cleaning, color: "#d97706" },
+          { name: "Maintenance", value: maint, color: "#e11d48" },
+        ].filter((item) => item.value > 0),
+      );
 
       // Area Chart: Monthly Revenue (computed or grouped by month)
-      const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+      const months = [
+        "Jan",
+        "Feb",
+        "Mar",
+        "Apr",
+        "May",
+        "Jun",
+        "Jul",
+        "Aug",
+        "Sep",
+        "Oct",
+        "Nov",
+        "Dec",
+      ];
       const monthlyBuckets = {};
       const currentMonthIdx = new Date().getMonth();
 
@@ -174,7 +213,10 @@ export default function DashboardPage() {
       }
 
       bookings.forEach((b) => {
-        if (b.createdAt && ["confirmed", "checked_in", "checked_out"].includes(b.status)) {
+        if (
+          b.createdAt &&
+          ["confirmed", "checked_in", "checked_out"].includes(b.status)
+        ) {
           const date = new Date(b.createdAt);
           const monthName = months[date.getMonth()];
           if (monthlyBuckets[monthName] !== undefined) {
@@ -258,7 +300,11 @@ export default function DashboardPage() {
               </Button>
               {role === "owner" && (
                 <Link href="/rooms/manage">
-                  <Button variant="outline" size="sm" leftIcon={<BedDouble className="h-4 w-4" />}>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    leftIcon={<BedDouble className="h-4 w-4" />}
+                  >
                     Room Management
                   </Button>
                 </Link>
@@ -289,7 +335,10 @@ export default function DashboardPage() {
                 </div>
                 <div className="mt-3">
                   <p className="text-2xl font-extrabold text-slate-900 tracking-tight">
-                    {stats.totalRevenue.toLocaleString()} <span className="text-xs font-semibold text-slate-500">ETB</span>
+                    {stats.totalRevenue.toLocaleString()}{" "}
+                    <span className="text-xs font-semibold text-slate-500">
+                      ETB
+                    </span>
                   </p>
                   <p className="text-[11px] text-emerald-600 font-medium mt-1 flex items-center gap-1">
                     <TrendingUp className="h-3 w-3" />
@@ -353,7 +402,8 @@ export default function DashboardPage() {
                     {stats.availableRooms}
                   </p>
                   <p className="text-[11px] text-slate-500 font-medium mt-1">
-                    {stats.cleaningRooms} cleaning, {stats.maintenanceRooms} maintenance
+                    {stats.cleaningRooms} cleaning, {stats.maintenanceRooms}{" "}
+                    maintenance
                   </p>
                 </div>
               </Card>
@@ -370,28 +420,43 @@ export default function DashboardPage() {
                 <CardTitle subtitle="Monthly gross booking revenue in ETB">
                   Revenue Growth Trajectory
                 </CardTitle>
-                <Badge variant="gold" size="sm">Gross ETB</Badge>
+                <Badge variant="gold" size="sm">
+                  Gross ETB
+                </Badge>
               </CardHeader>
 
               <div className="h-64 sm:h-72 w-full pt-2">
                 <ResponsiveContainer width="100%" height="100%">
-                  <AreaChart data={revenueData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
-                    <defs>
-                      <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="#b48c58" stopOpacity={0.3} />
-                        <stop offset="95%" stopColor="#b48c58" stopOpacity={0.0} />
-                      </linearGradient>
-                    </defs>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
-                    <XAxis dataKey="month" stroke="#94a3b8" fontSize={11} tickLine={false} />
+                  {" "}
+                  <LineChart
+                    data={revenueData}
+                    margin={{ top: 10, right: 10, left: 0, bottom: 0 }}
+                  >
+                    {" "}
+                    <CartesianGrid
+                      strokeDasharray="3 3"
+                      stroke="#f1f5f9"
+                      vertical={false}
+                    />{" "}
+                    <XAxis
+                      dataKey="month"
+                      stroke="#94a3b8"
+                      fontSize={11}
+                      tickLine={false}
+                      axisLine={false}
+                    />{" "}
                     <YAxis
                       stroke="#94a3b8"
                       fontSize={11}
                       tickLine={false}
+                      axisLine={false}
                       tickFormatter={(val) => `${(val / 1000).toFixed(0)}k`}
-                    />
+                    />{" "}
                     <Tooltip
-                      formatter={(val) => [`${Number(val).toLocaleString()} ETB`, "Revenue"]}
+                      formatter={(val) => [
+                        `${Number(val).toLocaleString()} ETB`,
+                        "Revenue",
+                      ]}
                       contentStyle={{
                         backgroundColor: "#0f172a",
                         color: "#ffffff",
@@ -399,16 +464,16 @@ export default function DashboardPage() {
                         fontSize: "12px",
                         border: "none",
                       }}
-                    />
-                    <Area
+                    />{" "}
+                    <Line
                       type="monotone"
                       dataKey="revenue"
                       stroke="#b48c58"
                       strokeWidth={2.5}
-                      fillOpacity={1}
-                      fill="url(#colorRevenue)"
-                    />
-                  </AreaChart>
+                      dot={false}
+                      activeDot={{ r: 5, strokeWidth: 2 }}
+                    />{" "}
+                  </LineChart>{" "}
                 </ResponsiveContainer>
               </div>
             </Card>
@@ -434,7 +499,10 @@ export default function DashboardPage() {
                       dataKey="value"
                     >
                       {roomStatusData.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={entry.color || COLORS[index % COLORS.length]} />
+                        <Cell
+                          key={`cell-${index}`}
+                          fill={entry.color || COLORS[index % COLORS.length]}
+                        />
                       ))}
                     </Pie>
                     <Tooltip
@@ -456,7 +524,9 @@ export default function DashboardPage() {
                         className="w-2.5 h-2.5 rounded-full"
                         style={{ backgroundColor: d.color }}
                       />
-                      <span>{d.name}: <strong>{d.value}</strong></span>
+                      <span>
+                        {d.name}: <strong>{d.value}</strong>
+                      </span>
                     </div>
                   ))}
                 </div>
@@ -471,7 +541,11 @@ export default function DashboardPage() {
                 Bookings by Status
               </CardTitle>
               <Link href="/bookings">
-                <Button variant="ghost" size="sm" rightIcon={<ChevronRight className="h-4 w-4" />}>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  rightIcon={<ChevronRight className="h-4 w-4" />}
+                >
                   Manage All Bookings
                 </Button>
               </Link>
@@ -479,10 +553,27 @@ export default function DashboardPage() {
 
             <div className="h-56 w-full pt-2">
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={bookingStatusData} margin={{ top: 10, right: 10, left: -15, bottom: 0 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
-                  <XAxis dataKey="name" stroke="#94a3b8" fontSize={11} tickLine={false} />
-                  <YAxis stroke="#94a3b8" fontSize={11} tickLine={false} allowDecimals={false} />
+                <BarChart
+                  data={bookingStatusData}
+                  margin={{ top: 10, right: 10, left: -15, bottom: 0 }}
+                >
+                  <CartesianGrid
+                    strokeDasharray="3 3"
+                    stroke="#f1f5f9"
+                    vertical={false}
+                  />
+                  <XAxis
+                    dataKey="name"
+                    stroke="#94a3b8"
+                    fontSize={11}
+                    tickLine={false}
+                  />
+                  <YAxis
+                    stroke="#94a3b8"
+                    fontSize={11}
+                    tickLine={false}
+                    allowDecimals={false}
+                  />
                   <Tooltip
                     formatter={(val) => [val, "Count"]}
                     contentStyle={{
@@ -511,7 +602,11 @@ export default function DashboardPage() {
                 Recent Bookings Activity
               </CardTitle>
               <Link href="/bookings">
-                <Button variant="outline" size="sm" rightIcon={<ArrowRight className="h-4 w-4" />}>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  rightIcon={<ArrowRight className="h-4 w-4" />}
+                >
                   View All ({stats.totalBookings})
                 </Button>
               </Link>
@@ -544,7 +639,10 @@ export default function DashboardPage() {
                     </thead>
                     <tbody className="divide-y divide-slate-100 text-xs">
                       {recentBookings.map((b) => (
-                        <tr key={b._id} className="hover:bg-slate-50/70 transition-colors">
+                        <tr
+                          key={b._id}
+                          className="hover:bg-slate-50/70 transition-colors"
+                        >
                           <td className="py-3.5 px-4 font-bold text-slate-900">
                             {b.bookingNumber}
                           </td>
@@ -552,7 +650,9 @@ export default function DashboardPage() {
                             <p className="font-semibold text-slate-800">
                               {b.guest?.firstName} {b.guest?.lastName}
                             </p>
-                            <p className="text-[11px] text-slate-400">{b.guest?.phone}</p>
+                            <p className="text-[11px] text-slate-400">
+                              {b.guest?.phone}
+                            </p>
                           </td>
                           <td className="py-3.5 px-4">
                             <span className="font-semibold text-slate-800">
@@ -579,7 +679,9 @@ export default function DashboardPage() {
                                   size="sm"
                                   variant="primary"
                                   isLoading={actionLoading === b._id}
-                                  onClick={() => handleBookingAction(b._id, "confirm")}
+                                  onClick={() =>
+                                    handleBookingAction(b._id, "confirm")
+                                  }
                                 >
                                   Confirm
                                 </Button>
@@ -589,7 +691,9 @@ export default function DashboardPage() {
                                   size="sm"
                                   variant="gold"
                                   isLoading={actionLoading === b._id}
-                                  onClick={() => handleBookingAction(b._id, "check-in")}
+                                  onClick={() =>
+                                    handleBookingAction(b._id, "check-in")
+                                  }
                                 >
                                   Check In
                                 </Button>
@@ -599,7 +703,9 @@ export default function DashboardPage() {
                                   size="sm"
                                   variant="secondary"
                                   isLoading={actionLoading === b._id}
-                                  onClick={() => handleBookingAction(b._id, "check-out")}
+                                  onClick={() =>
+                                    handleBookingAction(b._id, "check-out")
+                                  }
                                 >
                                   Check Out
                                 </Button>
@@ -630,16 +736,22 @@ export default function DashboardPage() {
 
                       <div className="text-xs text-slate-600 space-y-1">
                         <p>
-                          <strong className="text-slate-800">Guest:</strong> {b.guest?.firstName} {b.guest?.lastName} ({b.guest?.phone})
+                          <strong className="text-slate-800">Guest:</strong>{" "}
+                          {b.guest?.firstName} {b.guest?.lastName} (
+                          {b.guest?.phone})
                         </p>
                         <p>
-                          <strong className="text-slate-800">Room:</strong> Room {b.room?.roomNumber || "—"} ({b.room?.type})
+                          <strong className="text-slate-800">Room:</strong> Room{" "}
+                          {b.room?.roomNumber || "—"} ({b.room?.type})
                         </p>
                         <p>
-                          <strong className="text-slate-800">Stay:</strong> {new Date(b.checkInDate).toLocaleDateString()} - {new Date(b.checkOutDate).toLocaleDateString()}
+                          <strong className="text-slate-800">Stay:</strong>{" "}
+                          {new Date(b.checkInDate).toLocaleDateString()} -{" "}
+                          {new Date(b.checkOutDate).toLocaleDateString()}
                         </p>
                         <p>
-                          <strong className="text-slate-800">Total:</strong> {b.totalPrice?.toLocaleString()} {b.currency}
+                          <strong className="text-slate-800">Total:</strong>{" "}
+                          {b.totalPrice?.toLocaleString()} {b.currency}
                         </p>
                       </div>
 
@@ -649,7 +761,9 @@ export default function DashboardPage() {
                             size="sm"
                             variant="primary"
                             isLoading={actionLoading === b._id}
-                            onClick={() => handleBookingAction(b._id, "confirm")}
+                            onClick={() =>
+                              handleBookingAction(b._id, "confirm")
+                            }
                           >
                             Confirm
                           </Button>
@@ -659,7 +773,9 @@ export default function DashboardPage() {
                             size="sm"
                             variant="gold"
                             isLoading={actionLoading === b._id}
-                            onClick={() => handleBookingAction(b._id, "check-in")}
+                            onClick={() =>
+                              handleBookingAction(b._id, "check-in")
+                            }
                           >
                             Check In
                           </Button>
@@ -669,13 +785,19 @@ export default function DashboardPage() {
                             size="sm"
                             variant="secondary"
                             isLoading={actionLoading === b._id}
-                            onClick={() => handleBookingAction(b._id, "check-out")}
+                            onClick={() =>
+                              handleBookingAction(b._id, "check-out")
+                            }
                           >
                             Check Out
                           </Button>
                         )}
                         <Link href={`/bookings/${b._id}`} className="flex-1">
-                          <Button size="sm" variant="outline" className="w-full">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="w-full"
+                          >
                             Details
                           </Button>
                         </Link>

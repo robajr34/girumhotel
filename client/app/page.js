@@ -26,7 +26,16 @@ import {
   CheckCircle,
   Clock,
   Layers,
-  ChevronRight
+  ChevronRight,
+  CalendarDays,
+  Coffee,
+  Croissant,
+  Soup,
+  Beef,
+  Wine,
+  CupSoda,
+  CakeSlice,
+  Flame,
 } from "lucide-react";
 
 export default function LandingPage() {
@@ -46,11 +55,79 @@ export default function LandingPage() {
     guests: 1,
   });
 
+   const categories = [
+      {
+        key: "all",
+        label: "All Items",
+        icon: Utensils,
+        description:
+          "Explore our complete selection of food and beverages.",
+      },
+      {
+        key: "breakfast",
+        label: "Breakfast",
+        icon: Croissant,
+        description: "Start your day with a delicious breakfast.",
+      },
+      {
+        key: "lunch",
+        label: "Lunch",
+        icon: Soup,
+        description:
+          "Freshly prepared meals for a satisfying afternoon.",
+      },
+      {
+        key: "dinner",
+        label: "Dinner",
+        icon: Flame,
+        description: "Enjoy our selection of evening dishes.",
+      },
+      {
+        key: "meat",
+        label: "Meat & Grill",
+        icon: Beef,
+        description:
+          "Grilled and expertly prepared meat selections.",
+      },
+      {
+        key: "beverage",
+        label: "Beverages",
+        icon: CupSoda,
+        description:
+          "Refreshing drinks to complement your meal.",
+      },
+      {
+        key: "alcohol",
+        label: "Alcohol",
+        icon: Wine,
+        description:
+          "A selection of alcoholic beverages.",
+      },
+      {
+        key: "hot_drink",
+        label: "Hot Drink",
+        icon: Coffee,
+        description:
+          "Warm drinks prepared fresh for you.",
+      },
+      {
+        key: "cake",
+        label: "Cake",
+        icon: CakeSlice,
+        description:
+          "Sweet treats and freshly prepared desserts.",
+      },
+    ];
+
   useEffect(() => {
     const loadData = async () => {
       try {
         setLoadingRooms(true);
-        const res = await roomApi.getRooms({ limit: 3, sortBy: "roomNumber", sortOrder: "asc" });
+        const res = await roomApi.getRooms({
+          limit: 3,
+          sortBy: "roomNumber",
+          sortOrder: "asc",
+        });
         setFeaturedRooms(res.data?.data?.rooms || []);
       } catch (err) {
         console.error("Failed to load featured rooms", err);
@@ -60,7 +137,11 @@ export default function LandingPage() {
 
       try {
         setLoadingMenus(true);
-        const res = await menuApi.getMenu({ limit: 4, sortBy: "createdAt", sortOrder: "desc" });
+        const res = await menuApi.getMenu({
+          limit: 4,
+          sortBy: "createdAt",
+          sortOrder: "desc",
+        });
         setFeaturedMenus(res.data?.data?.menus || []);
       } catch (err) {
         console.error("Failed to load featured menus", err);
@@ -76,7 +157,7 @@ export default function LandingPage() {
     setSelectedRoomForBooking(room);
     setBookingModalOpen(true);
   };
-console.log(HOTEL.heroImage)
+  console.log(HOTEL.heroImage);
   return (
     <div className="min-h-screen flex flex-col bg-[#fafafc]">
       <Navbar />
@@ -143,10 +224,7 @@ console.log(HOTEL.heroImage)
               </Link>
 
               <Link href="/menu">
-                <Button
-                  size="lg"
-                  variant="outline"
-                >
+                <Button size="lg" variant="outline">
                   View Dining Menu
                 </Button>
               </Link>
@@ -482,63 +560,134 @@ console.log(HOTEL.heroImage)
               </Button>
             </Link>
           </div>
-
           {loadingMenus ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
               {[1, 2, 3, 4].map((i) => (
                 <div
                   key={i}
-                  className="bg-white rounded-2xl p-4 space-y-3 border border-slate-200"
+                  className="bg-white rounded-2xl border border-slate-200/80 p-5 space-y-4"
                 >
-                  <Skeleton className="h-4 w-20" />
-                  <Skeleton className="h-5 w-32" />
-                  <Skeleton className="h-3 w-full" />
-                  <Skeleton className="h-4 w-16" />
+                  <div className="flex items-center justify-between">
+                    <Skeleton className="h-9 w-9 rounded-xl" />
+                    <Skeleton className="h-4 w-12" />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Skeleton className="h-5 w-32" />
+                    <Skeleton className="h-3 w-full" />
+                    <Skeleton className="h-3 w-4/5" />
+                  </div>
+
+                  <div className="pt-4 border-t border-slate-100 flex items-center justify-between">
+                    <Skeleton className="h-5 w-20" />
+                    <Skeleton className="h-3 w-16" />
+                  </div>
                 </div>
               ))}
             </div>
           ) : featuredMenus.length > 0 ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-              {featuredMenus.map((item) => (
-                <div
-                  key={item._id}
-                  className="bg-white rounded-2xl border border-slate-200/80 p-5 shadow-card hover:shadow-card-hover transition-all flex flex-col justify-between"
-                >
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <Badge status={item.category} size="sm" />
-                      <div className="flex items-center gap-1 text-[11px] text-slate-400">
-                        <Clock className="h-3 w-3" />
-                        <span>{item.preparationTime || 15}m</span>
+              {featuredMenus.map((item) => {
+                const category = categories.find(
+                  (cat) => cat.key === item.category,
+                );
+
+                const CategoryIcon = category?.icon || Utensils;
+
+                return (
+                  <div
+                    key={item._id}
+                    className="group relative bg-white rounded-2xl border border-slate-200/80 p-5 shadow-card hover:shadow-card-hover hover:-translate-y-1 transition-all duration-300 flex flex-col"
+                  >
+                    {/* Featured Accent */}
+                    <div className="absolute top-0 left-5 right-5 h-0.5 bg-gradient-to-r from-transparent via-[#b48c58] to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+
+                    {/* Top */}
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="h-11 w-11 rounded-xl bg-[#fbf7f2] border border-[#e8d8c3] flex items-center justify-center group-hover:bg-[#f7efe4] transition-colors">
+                        <CategoryIcon className="h-5 w-5 text-[#8c6838]" />
+                      </div>
+
+                      <div className="flex items-center gap-1.5 text-[11px] text-slate-400">
+                        <Clock className="h-3.5 w-3.5" />
+                        <span>{item.preparationTime || 15} min</span>
                       </div>
                     </div>
-                    <h4 className="text-sm font-bold text-slate-900 pt-1">
-                      {item.name}
-                    </h4>
-                    <p className="text-xs text-slate-500 line-clamp-2 leading-relaxed">
-                      {item.description ||
-                        "Prepared fresh to order with authentic seasonal ingredients."}
-                    </p>
+
+                    {/* Category */}
+                    <div className="mt-4">
+                      <Badge status={item.category} size="sm">
+                        {category?.label || item.category}
+                      </Badge>
+                    </div>
+
+                    {/* Content */}
+                    <div className="mt-2 flex-1">
+                      <h4 className="text-base font-bold text-slate-900 tracking-tight">
+                        {item.name}
+                      </h4>
+
+                      <p className="text-xs text-slate-500 line-clamp-2 leading-relaxed mt-2">
+                        {item.description ||
+                          "Prepared fresh to order with authentic seasonal ingredients."}
+                      </p>
+                    </div>
+
+                    {/* Footer */}
+                    <div className="pt-4 mt-5 border-t border-slate-100 flex items-end justify-between gap-3">
+                      <div>
+                        <span className="block text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">
+                          Price
+                        </span>
+
+                        <span className="text-base font-bold text-[#8c6838]">
+                          {item.price?.toLocaleString()}
+                          <span className="text-[11px] font-medium text-slate-400 ml-1">
+                            ETB
+                          </span>
+                        </span>
+                      </div>
+
+                      <div className="flex items-center gap-1.5">
+                        <span
+                          className={`h-1.5 w-1.5 rounded-full ${
+                            item.isAvailable ? "bg-emerald-500" : "bg-slate-300"
+                          }`}
+                        />
+
+                        <span
+                          className={`text-[11px] font-medium ${
+                            item.isAvailable
+                              ? "text-emerald-600"
+                              : "text-slate-400"
+                          }`}
+                        >
+                          {item.isAvailable ? "Available" : "Sold out"}
+                        </span>
+                      </div>
+                    </div>
                   </div>
-                  <div className="pt-4 mt-3 border-t border-slate-100 flex items-center justify-between">
-                    <span className="text-xs font-bold text-[#8c6838]">
-                      {item.price?.toLocaleString()} ETB
-                    </span>
-                    <span
-                      className={`text-[11px] font-medium ${item.isAvailable ? "text-emerald-600" : "text-slate-400"}`}
-                    >
-                      {item.isAvailable ? "Available" : "Sold out"}
-                    </span>
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           ) : (
-            <div className="bg-white rounded-2xl p-8 text-center border border-dashed border-slate-200">
-              <Utensils className="h-6 w-6 text-slate-400 mx-auto mb-2" />
-              <p className="text-xs text-slate-500">
-                Dining menu currently being updated.
-              </p>
+            <div className="relative overflow-hidden bg-white rounded-2xl border border-dashed border-slate-200 p-10 text-center">
+              <div className="absolute inset-0 bg-gradient-to-br from-[#fbf7f2] via-transparent to-transparent pointer-events-none" />
+
+              <div className="relative">
+                <div className="h-12 w-12 rounded-2xl bg-[#fbf7f2] border border-[#e8d8c3] flex items-center justify-center mx-auto mb-3">
+                  <Utensils className="h-5 w-5 text-[#8c6838]" />
+                </div>
+
+                <h4 className="text-sm font-bold text-slate-900">
+                  Our menu is being refreshed
+                </h4>
+
+                <p className="text-xs text-slate-500 mt-1 max-w-sm mx-auto">
+                  Our culinary team is currently updating today's selection.
+                  Please check back shortly.
+                </p>
+              </div>
             </div>
           )}
         </section>
@@ -546,116 +695,193 @@ console.log(HOTEL.heroImage)
         {/* ===================================================
             5. HOTEL MANAGEMENT PLATFORM HIGHLIGHT
         =================================================== */}
-        <section className="py-20 bg-slate-900 text-white relative overflow-hidden">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
-              <div className="space-y-6">
-                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-xl bg-slate-800 text-[#b48c58] text-xs font-semibold">
-                  <Layers className="h-3.5 w-3.5" />
-                  <span>Integrated Management Suite</span>
-                </div>
-                <h2 className="text-2xl sm:text-4xl font-extrabold tracking-tight leading-snug">
-                  Precision Hotel Operations Built for Modern Teams
-                </h2>
-                <p className="text-xs sm:text-sm text-slate-300 leading-relaxed">
-                  From front desk guest check-ins to executive revenue
-                  analytics, {HOTEL.websiteName} provides an all-in-one SaaS
-                  workstation engineered for speed and clarity.
-                </p>
-
-                <div className="space-y-3 pt-2">
-                  <div className="flex items-start gap-3">
-                    <CheckCircle className="h-4 w-4 text-[#b48c58] shrink-0 mt-0.5" />
-                    <span className="text-xs text-slate-200">
-                      Real-time Occupancy & Visual Recharts Analytics
-                    </span>
-                  </div>
-                  <div className="flex items-start gap-3">
-                    <CheckCircle className="h-4 w-4 text-[#b48c58] shrink-0 mt-0.5" />
-                    <span className="text-xs text-slate-200">
-                      Multi-role Staff Delegation (Owner, Manager, Receptionist)
-                    </span>
-                  </div>
-                  <div className="flex items-start gap-3">
-                    <CheckCircle className="h-4 w-4 text-[#b48c58] shrink-0 mt-0.5" />
-                    <span className="text-xs text-slate-200">
-                      Automated Room Status Transitions (Available, Cleaning,
-                      Occupied)
-                    </span>
-                  </div>
-                </div>
-
-                <div className="pt-4 flex items-center gap-3">
-                  <Link href="/auth/login">
-                    <Button variant="gold" size="md">
-                      Access Staff Workstation
-                    </Button>
-                  </Link>
-                  <Link href="/auth/setup/owner">
-                    <Button
-                      variant="outline"
-                      size="md"
-                    >
-                      Initial Owner Setup
-                    </Button>
-                  </Link>
-                </div>
-              </div>
-
-              {/* Graphical Preview Card */}
-              <div className="bg-slate-800/80 rounded-3xl border border-slate-700/80 p-6 sm:p-8 shadow-2xl backdrop-blur-md space-y-6">
-                <div className="flex items-center justify-between pb-4 border-b border-slate-700">
-                  <div>
-                    <span className="text-[10px] font-bold uppercase tracking-wider text-[#b48c58]">
-                      Operational Pulse
-                    </span>
-                    <h4 className="text-base font-bold text-white">
-                      Today&apos;s Hotel Metrics
-                    </h4>
-                  </div>
-                  <Badge status="available" size="sm">
-                    Live
-                  </Badge>
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="p-4 rounded-2xl bg-slate-900/90 border border-slate-700/60">
-                    <span className="text-xs text-slate-400">
-                      Total Revenue
-                    </span>
-                    <p className="text-xl font-extrabold text-white mt-1">
-                      184,500{" "}
-                      <span className="text-xs font-normal text-slate-400">
-                        ETB
-                      </span>
-                    </p>
-                  </div>
-                  <div className="p-4 rounded-2xl bg-slate-900/90 border border-slate-700/60">
-                    <span className="text-xs text-slate-400">Occupancy</span>
-                    <p className="text-xl font-extrabold text-[#b48c58] mt-1">
-                      76%
-                    </p>
-                  </div>
-                  <div className="p-4 rounded-2xl bg-slate-900/90 border border-slate-700/60">
-                    <span className="text-xs text-slate-400">
-                      Available Rooms
-                    </span>
-                    <p className="text-xl font-extrabold text-emerald-400 mt-1">
-                      12
-                    </p>
-                  </div>
-                  <div className="p-4 rounded-2xl bg-slate-900/90 border border-slate-700/60">
-                    <span className="text-xs text-slate-400">
-                      Pending Actions
-                    </span>
-                    <p className="text-xl font-extrabold text-amber-400 mt-1">
-                      4
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
+        <section className="bg-slate-900 p-6 sm:p-8 shadow-2xl backdrop-blur-md space-y-6">
+          {" "}
+          {/* Header */}{" "}
+          <div className="flex items-center justify-between pb-5 border-b border-slate-700/80">
+            {" "}
+            <div>
+              {" "}
+              <div className="flex items-center gap-2 mb-1.5">
+                {" "}
+                <span className="h-1.5 w-1.5 rounded-full bg-[#b48c58] shadow-[0_0_8px_rgba(180,140,88,0.8)]" />{" "}
+                <span className="text-[10px] font-bold uppercase tracking-[0.14em] text-[#b48c58]">
+                  {" "}
+                  Management Overview{" "}
+                </span>{" "}
+              </div>{" "}
+              <h4 className="text-base sm:text-lg font-bold text-white tracking-tight">
+                {" "}
+                Everything in One Workspace{" "}
+              </h4>{" "}
+            </div>{" "}
+            <Badge variant="success" size="sm">
+              {" "}
+              Ready{" "}
+            </Badge>{" "}
+          </div>{" "}
+          {/* Feature Status */}{" "}
+          <div className="space-y-2.5">
+            {" "}
+            {/* Room Management */}{" "}
+            <div className="group flex items-center justify-between gap-4 p-3.5 rounded-2xl bg-slate-800/60 border border-slate-700/70 hover:border-emerald-500/30 hover:bg-slate-800 transition-all duration-200">
+              {" "}
+              <div className="flex items-center gap-3 min-w-0">
+                {" "}
+                <div className="h-10 w-10 shrink-0 rounded-xl bg-emerald-500/10 border border-emerald-500/10 flex items-center justify-center">
+                  {" "}
+                  <CheckCircle className="h-4 w-4 text-emerald-400" />{" "}
+                </div>{" "}
+                <div className="min-w-0">
+                  {" "}
+                  <p className="text-xs font-semibold text-white">
+                    {" "}
+                    Room Management{" "}
+                  </p>{" "}
+                  <p className="text-[10px] text-slate-400 mt-0.5 truncate">
+                    {" "}
+                    Availability & status tracking{" "}
+                  </p>{" "}
+                </div>{" "}
+              </div>{" "}
+              <Badge status="available" size="sm">
+                {" "}
+                Active{" "}
+              </Badge>{" "}
+            </div>{" "}
+            {/* Reservations */}{" "}
+            <div className="group flex items-center justify-between gap-4 p-3.5 rounded-2xl bg-slate-800/60 border border-slate-700/70 hover:border-[#b48c58]/40 hover:bg-slate-800 transition-all duration-200">
+              {" "}
+              <div className="flex items-center gap-3 min-w-0">
+                {" "}
+                <div className="h-10 w-10 shrink-0 rounded-xl bg-[#b48c58]/10 border border-[#b48c58]/10 flex items-center justify-center">
+                  {" "}
+                  <CalendarDays className="h-4 w-4 text-[#b48c58]" />{" "}
+                </div>{" "}
+                <div className="min-w-0">
+                  {" "}
+                  <p className="text-xs font-semibold text-white">
+                    {" "}
+                    Reservations{" "}
+                  </p>{" "}
+                  <p className="text-[10px] text-slate-400 mt-0.5 truncate">
+                    {" "}
+                    Centralized booking management{" "}
+                  </p>{" "}
+                </div>{" "}
+              </div>{" "}
+              <Badge variant="gold" size="sm">
+                {" "}
+                Organized{" "}
+              </Badge>{" "}
+            </div>{" "}
+            {/* Staff Workspace */}{" "}
+            <div className="group flex items-center justify-between gap-4 p-3.5 rounded-2xl bg-slate-800/60 border border-slate-700/70 hover:border-indigo-500/30 hover:bg-slate-800 transition-all duration-200">
+              {" "}
+              <div className="flex items-center gap-3 min-w-0">
+                {" "}
+                <div className="h-10 w-10 shrink-0 rounded-xl bg-indigo-500/10 border border-indigo-500/10 flex items-center justify-center">
+                  {" "}
+                  <Users className="h-4 w-4 text-indigo-400" />{" "}
+                </div>{" "}
+                <div className="min-w-0">
+                  {" "}
+                  <p className="text-xs font-semibold text-white">
+                    {" "}
+                    Staff Workspace{" "}
+                  </p>{" "}
+                  <p className="text-[10px] text-slate-400 mt-0.5 truncate">
+                    {" "}
+                    Role-based team access{" "}
+                  </p>{" "}
+                </div>{" "}
+              </div>{" "}
+              <Badge variant="info" size="sm">
+                {" "}
+                Connected{" "}
+              </Badge>{" "}
+            </div>{" "}
+          </div>{" "}
+          {/* Operations Flow */}{" "}
+          <div className="pt-2">
+            {" "}
+            <div className="flex items-center justify-between mb-3">
+              {" "}
+              <div>
+                {" "}
+                <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-slate-400">
+                  {" "}
+                  Daily Operations{" "}
+                </p>{" "}
+                <p className="text-[10px] text-slate-500 mt-0.5">
+                  {" "}
+                  Connected workflows across your team{" "}
+                </p>{" "}
+              </div>{" "}
+              <Badge variant="gold" size="sm">
+                {" "}
+                Streamlined{" "}
+              </Badge>{" "}
+            </div>{" "}
+            {/* Workflow Progress */}{" "}
+            <div className="relative h-2 w-full rounded-full bg-slate-800 overflow-hidden border border-slate-700/60">
+              {" "}
+              <div className="absolute inset-y-0 left-0 w-[88%] rounded-full bg-gradient-to-r from-[#8f6d43] via-[#b48c58] to-[#c9a66d]" />{" "}
+              <div className="absolute top-0 left-[88%] h-full w-6 bg-white/20 blur-sm" />{" "}
+            </div>{" "}
+            {/* Workflow Labels */}{" "}
+            <div className="grid grid-cols-3 gap-2 mt-3">
+              {" "}
+              <div className="flex items-center gap-1.5">
+                {" "}
+                <span className="h-1.5 w-1.5 rounded-full bg-[#b48c58]" />{" "}
+                <span className="text-[9px] text-slate-500">
+                  {" "}
+                  Front desk{" "}
+                </span>{" "}
+              </div>{" "}
+              <div className="flex items-center justify-center gap-1.5">
+                {" "}
+                <span className="h-1.5 w-1.5 rounded-full bg-[#b48c58]" />{" "}
+                <span className="text-[9px] text-slate-500">
+                  {" "}
+                  Housekeeping{" "}
+                </span>{" "}
+              </div>{" "}
+              <div className="flex items-center justify-end gap-1.5">
+                {" "}
+                <span className="h-1.5 w-1.5 rounded-full bg-[#b48c58]" />{" "}
+                <span className="text-[9px] text-slate-500">
+                  {" "}
+                  Management{" "}
+                </span>{" "}
+              </div>{" "}
+            </div>{" "}
+          </div>{" "}
+          {/* Bottom Insight */}{" "}
+          <div className="relative overflow-hidden rounded-2xl border border-[#b48c58]/15 bg-[#b48c58]/5 p-4">
+            {" "}
+            <div className="absolute -right-8 -top-8 h-20 w-20 rounded-full bg-[#b48c58]/5 blur-2xl" />{" "}
+            <div className="relative flex items-start gap-3">
+              {" "}
+              <div className="h-9 w-9 shrink-0 rounded-xl bg-[#b48c58]/10 border border-[#b48c58]/10 flex items-center justify-center">
+                {" "}
+                <Layers className="h-4 w-4 text-[#b48c58]" />{" "}
+              </div>{" "}
+              <div>
+                {" "}
+                <p className="text-xs font-semibold text-slate-200">
+                  {" "}
+                  One connected workflow{" "}
+                </p>{" "}
+                <p className="text-[10px] leading-relaxed text-slate-400 mt-1">
+                  {" "}
+                  Keep reservations, rooms, staff, and daily operations
+                  organized from a single workspace.{" "}
+                </p>{" "}
+              </div>{" "}
+            </div>{" "}
+          </div>{" "}
         </section>
       </main>
 

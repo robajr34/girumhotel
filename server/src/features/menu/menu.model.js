@@ -25,7 +25,7 @@ const menuSchema = new mongoose.Schema(
     category: {
       type: String,
       required: true,
-      enum: ["breakfast", "lunch", "dinner", "meat", "beverage"],
+      enum: ["breakfast", "lunch", "dinner", "meat", "beverage", "alcohol", "hot_drink", "cake"],
     },
 
     isAvailable: {

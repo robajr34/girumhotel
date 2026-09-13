@@ -24,7 +24,7 @@ export const getUser = async (req, res) => {
 };
 
 export const getMe = async (req, res) => {
-  const userId = validateId(req.params.userId);
+  const userId = req.user.userId;
 
   const user = await getMeService(userId);
 

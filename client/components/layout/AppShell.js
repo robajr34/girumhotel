@@ -80,6 +80,12 @@ export default function AppShell({ children, title, subtitle }) {
       roles: ["owner", "manager", "receptionist", "guest"],
     },
     {
+      label: "Menus",
+      href: "/menu",
+      icon: <Utensils className="h-4 w-4" />,
+      roles: ["receptionist", "guest"],
+    },
+    {
       label: "Profile & Account",
       href: "/profile",
       icon: <UserRound className="h-4 w-4" />,

@@ -36,11 +36,14 @@ export default function Badge({
     guest: "bg-slate-100 text-slate-700 border-slate-200",
 
     // Menu Categories
-    breakfast: "bg-amber-50 text-amber-800 border-amber-200",
-    lunch: "bg-emerald-50 text-emerald-800 border-emerald-200",
-    dinner: "bg-indigo-50 text-indigo-800 border-indigo-200",
-    meat: "bg-rose-50 text-rose-800 border-rose-200",
-    beverage: "bg-cyan-50 text-cyan-800 border-cyan-200",
+    breakfast: "bg-amber-50 text-amber-900 border-amber-300",
+    lunch: "bg-emerald-50 text-emerald-900 border-emerald-300",
+    dinner: "bg-indigo-50 text-indigo-900 border-indigo-300",
+    meat: "bg-rose-50 text-rose-900 border-rose-300",
+    beverage: "bg-cyan-50 text-cyan-900 border-cyan-300",
+    alcohol: "bg-violet-50 text-violet-900 border-violet-300",
+    hot_drink: "bg-orange-50 text-orange-900 border-orange-300",
+    cake: "bg-fuchsia-50 text-fuchsia-900 border-fuchsia-300",
   };
 
   const variantStyles = {

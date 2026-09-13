@@ -8,6 +8,9 @@ const menuCategory = z.enum([
   "dinner",
   "meat",
   "beverage",
+  "alcohol",
+  "cake",
+  "hot_drink"
 ]);
 
 export const createMenuValidator = z.object({
