@@ -16,7 +16,6 @@ import guestRouter from "./features/guest/guest.route.js";
 import httpLogger from "./middlewares/httpLogger.js";
 import { apiRateLimiter } from "./middlewares/rateLimiter.js";
 import bookingRouter from "./features/booking/booking.route.js";
-import docsRouter from "./docs/docs.route.js";
 
 const app = express();
 
@@ -30,7 +29,7 @@ app.use(
 );
 app.use(express.json());
 app.use(cookieParser());
-app.use(httpLogger)
+app.use(httpLogger);
 // Routes
 app.use("/api/rooms", roomRouter);
 app.use("/api/auth", authRouter);
@@ -38,9 +37,7 @@ app.use("/api/users", userRouter);
 app.use("/api/staffs", staffRouter);
 app.use("/api/menus", menuRouter);
 app.use("/api/guests", guestRouter);
-app.use("/api/bookings", bookingRouter)
-app.use("/docs", docsRouter);
-
+app.use("/api/bookings", bookingRouter);
 
 app.use("/health", (req, res) => {
   res.status(200).json({

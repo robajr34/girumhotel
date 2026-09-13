@@ -684,7 +684,7 @@ export default function LandingPage() {
                 </h4>
 
                 <p className="text-xs text-slate-500 mt-1 max-w-sm mx-auto">
-                  Our culinary team is currently updating today's selection.
+                  Our culinary team is currently updating today&apos;s selection.
                   Please check back shortly.
                 </p>
               </div>
