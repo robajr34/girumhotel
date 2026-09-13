@@ -305,7 +305,7 @@ export const setupOwnerService = async ({ email, password }) => {
 
   const verificationUrl = `${env.frontendUrl}/setup/owner/verify?token=${rawToken}`;
   logger.info("Token", {
-    raWToken: raWToken,
+    rawToken: rawToken,
   });
 
   try {
