@@ -304,223 +304,424 @@ export const setupOwnerService = async ({ email, password }) => {
   });
 
   const verificationUrl = `${env.frontendUrl}/setup/owner/verify?token=${rawToken}`;
+  logger.info("Token", {
+    raWToken: raWToken,
+  });
 
   try {
     await sendEmail({
       to: owner.email,
-      subject: "Verify your owner account",
+      subject: "Verify your owner account — Girum Hotel",
+
       html: `
-      <!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Verify your email</title>
-</head>
+    <!DOCTYPE html>
+    <html lang="en">
+      <head>
+        <meta charset="UTF-8" />
+        <meta
+          name="viewport"
+          content="width=device-width, initial-scale=1.0"
+        />
 
-<body style="
-  margin: 0;
-  padding: 0;
-  background-color: #f4f6f8;
-  font-family: Arial, Helvetica, sans-serif;
-  color: #17202a;
-">
+        <title>Verify your Girum Hotel account</title>
+      </head>
 
-  <table
-    role="presentation"
-    width="100%"
-    cellspacing="0"
-    cellpadding="0"
-    border="0"
-    style="background-color: #f4f6f8; padding: 40px 16px;"
-  >
-    <tr>
-      <td align="center">
+      <body
+        style="
+          margin: 0;
+          padding: 0;
+          background-color: #f5f5f4;
+          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI',
+            Roboto, Helvetica, Arial, sans-serif;
+          color: #1c1917;
+        "
+      >
 
-        <!-- Main Card -->
+        <!-- Preheader -->
+        <div
+          style="
+            display: none;
+            max-height: 0;
+            overflow: hidden;
+            opacity: 0;
+          "
+        >
+          Verify your owner account and access your Girum Hotel dashboard.
+        </div>
+
+        <!-- Outer wrapper -->
         <table
           role="presentation"
           width="100%"
-          cellspacing="0"
           cellpadding="0"
+          cellspacing="0"
           border="0"
-          style="
-            max-width: 560px;
-            background-color: #ffffff;
-            border-radius: 20px;
-            overflow: hidden;
-            box-shadow: 0 10px 35px rgba(0, 0, 0, 0.08);
-          "
+          style="background-color: #f5f5f4;"
         >
-
-          <!-- Header -->
           <tr>
-            <td
-              align="center"
-              style="
-                padding: 36px 32px 24px;
-                background-color: #111827;
-              "
-            >
-              <div style="
-                font-size: 14px;
-                font-weight: 700;
-                letter-spacing: 2px;
-                text-transform: uppercase;
-                color: #ffffff;
-              ">
-                HOTEL MANAGEMENT
-              </div>
-            </td>
-          </tr>
+            <td align="center" style="padding: 48px 16px;">
 
-          <!-- Content -->
-          <tr>
-            <td style="padding: 44px 40px 36px;">
-
-              <!-- Icon -->
-              <div style="
-                width: 64px;
-                height: 64px;
-                line-height: 64px;
-                margin: 0 auto 24px;
-                text-align: center;
-                border-radius: 50%;
-                background-color: #eef2ff;
-                font-size: 28px;
-              ">
-                ✉️
-              </div>
-
-              <h1 style="
-                margin: 0 0 16px;
-                text-align: center;
-                font-size: 30px;
-                line-height: 1.2;
-                font-weight: 700;
-                color: #111827;
-              ">
-                Verify your email
-              </h1>
-
-              <p style="
-                margin: 0 auto 28px;
-                max-width: 420px;
-                text-align: center;
-                font-size: 16px;
-                line-height: 1.7;
-                color: #6b7280;
-              ">
-                Welcome! You're almost ready to finish setting up
-                your owner account. Please verify your email address
-                to continue.
-              </p>
-
-              <!-- CTA -->
+              <!-- Email card -->
               <table
                 role="presentation"
                 width="100%"
-                cellspacing="0"
                 cellpadding="0"
+                cellspacing="0"
                 border="0"
+                style="
+                  max-width: 560px;
+                  background-color: #ffffff;
+                  border: 1px solid #e7e5e4;
+                  border-radius: 18px;
+                  overflow: hidden;
+                "
               >
-                <tr>
-                  <td align="center">
 
-                    <a
-                      href="${verificationUrl}"
+                <!-- Brand -->
+                <tr>
+                  <td
+                    style="
+                      padding: 30px 40px 24px;
+                      border-bottom: 1px solid #f0efed;
+                    "
+                  >
+                    <table
+                      role="presentation"
+                      width="100%"
+                      cellpadding="0"
+                      cellspacing="0"
+                      border="0"
+                    >
+                      <tr>
+                        <td>
+
+                          <div
+                            style="
+                              font-size: 11px;
+                              font-weight: 700;
+                              letter-spacing: 1.8px;
+                              text-transform: uppercase;
+                              color: #a16207;
+                              margin-bottom: 5px;
+                            "
+                          >
+                            GIRUM HOTEL
+                          </div>
+
+                          <div
+                            style="
+                              font-size: 13px;
+                              color: #78716c;
+                            "
+                          >
+                            Hotel Management System
+                          </div>
+
+                        </td>
+
+                        <td
+                          align="right"
+                          style="
+                            font-size: 22px;
+                          "
+                        >
+                          🏨
+                        </td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
+
+                <!-- Main content -->
+                <tr>
+                  <td
+                    style="
+                      padding: 44px 40px 40px;
+                    "
+                  >
+
+                    <!-- Small icon -->
+                    <div
                       style="
-                        display: inline-block;
-                        padding: 16px 32px;
-                        background-color: #111827;
-                        color: #ffffff;
-                        text-decoration: none;
-                        font-size: 16px;
+                        width: 48px;
+                        height: 48px;
+                        line-height: 48px;
+                        text-align: center;
+                        background-color: #fffbeb;
+                        border: 1px solid #fde68a;
+                        border-radius: 14px;
+                        font-size: 21px;
+                        margin-bottom: 26px;
+                      "
+                    >
+                      ✉
+                    </div>
+
+                    <!-- Heading -->
+                    <h1
+                      style="
+                        margin: 0 0 12px;
+                        font-size: 30px;
+                        line-height: 1.2;
                         font-weight: 700;
+                        letter-spacing: -0.7px;
+                        color: #1c1917;
+                      "
+                    >
+                      Welcome to Girum Hotel.
+                    </h1>
+
+                    <p
+                      style="
+                        margin: 0 0 28px;
+                        font-size: 16px;
+                        line-height: 1.7;
+                        color: #57534e;
+                      "
+                    >
+                      Your owner account is almost ready.
+                      Verify your email address to securely activate
+                      your account and access your hotel dashboard.
+                    </p>
+
+                    <!-- CTA -->
+                    <table
+                      role="presentation"
+                      cellpadding="0"
+                      cellspacing="0"
+                      border="0"
+                      width="100%"
+                    >
+                      <tr>
+                        <td>
+
+                          <a
+                            href="${verificationUrl}"
+                            target="_blank"
+                            style="
+                              display: block;
+                              width: 100%;
+                              box-sizing: border-box;
+                              background-color: #a16207;
+                              color: #ffffff;
+                              text-decoration: none;
+                              text-align: center;
+                              padding: 15px 20px;
+                              border-radius: 10px;
+                              font-size: 15px;
+                              font-weight: 700;
+                              line-height: 1.4;
+                            "
+                          >
+                            Verify email address
+                            &nbsp;&nbsp;→
+                          </a>
+
+                        </td>
+                      </tr>
+                    </table>
+
+                    <div
+                      style="
+                        margin-top: 22px;
+                        padding: 14px 16px;
+                        background-color: #fafaf9;
+                        border: 1px solid #e7e5e4;
                         border-radius: 10px;
                       "
                     >
-                      Verify Email →
-                    </a>
+                      <table
+                        role="presentation"
+                        width="100%"
+                        cellpadding="0"
+                        cellspacing="0"
+                        border="0"
+                      >
+                        <tr>
+                          <td
+                            style="
+                              font-size: 13px;
+                              color: #57534e;
+                            "
+                          >
+                            <strong style="color: #292524;">
+                              Link expires
+                            </strong>
+                          </td>
+
+                          <td
+                            align="right"
+                            style="
+                              font-size: 13px;
+                              font-weight: 700;
+                              color: #a16207;
+                            "
+                          >
+                            In 1 hour
+                          </td>
+                        </tr>
+                      </table>
+                    </div>
+
+                    <div
+                      style="
+                        height: 1px;
+                        background-color: #e7e5e4;
+                        margin: 32px 0;
+                      "
+                    ></div>
+
+                    <p
+                      style="
+                        margin: 0 0 8px;
+                        font-size: 12px;
+                        font-weight: 700;
+                        color: #44403c;
+                      "
+                    >
+                      Having trouble with the button?
+                    </p>
+
+                    <p
+                      style="
+                        margin: 0;
+                        font-size: 12px;
+                        line-height: 1.6;
+                        color: #78716c;
+                        word-break: break-all;
+                      "
+                    >
+                      Copy and paste this link into your browser:
+                    </p>
+
+                    <div
+                      style="
+                        margin-top: 10px;
+                        padding: 12px;
+                        background-color: #fafaf9;
+                        border: 1px solid #e7e5e4;
+                        border-radius: 8px;
+                        font-family: monospace;
+                        font-size: 11px;
+                        line-height: 1.5;
+                        color: #57534e;
+                        word-break: break-all;
+                      "
+                    >
+                      ${verificationUrl}
+                    </div>
+                    <div
+                      style="
+                        margin-top: 24px;
+                        padding: 15px 16px;
+                        background-color: #f0fdf4;
+                        border: 1px solid #dcfce7;
+                        border-radius: 10px;
+                      "
+                    >
+                      <table
+                        role="presentation"
+                        cellpadding="0"
+                        cellspacing="0"
+                        border="0"
+                      >
+                        <tr>
+                          <td
+                            valign="top"
+                            style="
+                              font-size: 16px;
+                              padding-right: 10px;
+                            "
+                          >
+                            🔒
+                          </td>
+
+                          <td
+                            style="
+                              font-size: 12px;
+                              line-height: 1.6;
+                              color: #166534;
+                            "
+                          >
+                            <strong>Your account is protected.</strong><br />
+                            Never share this verification link with anyone.
+                            Girum Hotel will never ask for your password by email.
+                          </td>
+                        </tr>
+                      </table>
+                    </div>
 
                   </td>
                 </tr>
+
+                <tr>
+                  <td
+                    style="
+                      padding: 24px 40px;
+                      background-color: #fafaf9;
+                      border-top: 1px solid #e7e5e4;
+                    "
+                  >
+
+                    <p
+                      style="
+                        margin: 0;
+                        font-size: 12px;
+                        line-height: 1.6;
+                        color: #78716c;
+                        text-align: center;
+                      "
+                    >
+                      Didn't create this account?
+                      <a
+                        href="mailto:support@girumhotel.com"
+                        style="
+                          color: #a16207;
+                          font-weight: 600;
+                          text-decoration: none;
+                        "
+                      >
+                        Contact support
+                      </a>
+                    </p>
+
+                    <p
+                      style="
+                        margin: 12px 0 0;
+                        font-size: 11px;
+                        line-height: 1.5;
+                        color: #a8a29e;
+                        text-align: center;
+                      "
+                    >
+                      © ${new Date().getFullYear()} Girum Hotel
+                      · Fiche, Ethiopia
+                    </p>
+
+                  </td>
+                </tr>
+
               </table>
 
-              <!-- Expiration -->
-              <div style="
-                margin-top: 28px;
-                padding: 14px 16px;
-                background-color: #f9fafb;
-                border-radius: 10px;
-                text-align: center;
-              ">
-                <p style="
-                  margin: 0;
-                  font-size: 13px;
-                  line-height: 1.5;
-                  color: #6b7280;
-                ">
-                  ⏱ This verification link expires in
-                  <strong style="color: #374151;">1 hour</strong>.
-                </p>
-              </div>
-
-              <!-- Fallback URL -->
-              <p style="
-                margin: 28px 0 0;
-                font-size: 12px;
-                line-height: 1.6;
-                color: #9ca3af;
-                text-align: center;
-              ">
-                If the button doesn't work, copy and paste the
-                verification link into your browser.
+              <!-- Bottom branding -->
+              <p
+                style="
+                  margin: 20px 0 0;
+                  font-size: 11px;
+                  color: #a8a29e;
+                  text-align: center;
+                "
+              >
+                Secure account verification
               </p>
 
             </td>
           </tr>
-
-          <!-- Footer -->
-          <tr>
-            <td
-              style="
-                padding: 24px 32px;
-                background-color: #f9fafb;
-                border-top: 1px solid #e5e7eb;
-              "
-            >
-              <p style="
-                margin: 0;
-                text-align: center;
-                font-size: 12px;
-                line-height: 1.6;
-                color: #9ca3af;
-              ">
-                If you didn't request this email, you can safely ignore it.
-              </p>
-            </td>
-          </tr>
-
         </table>
 
-        <!-- Bottom -->
-        <p style="
-          margin: 24px 0 0;
-          text-align: center;
-          font-size: 12px;
-          color: #9ca3af;
-        ">
-          © ${new Date().getFullYear()} Hotel Management System
-        </p>
-
-      </td>
-    </tr>
-  </table>
-
-</body>
-</html>
-    `,
+      </body>
+    </html>
+  `,
     });
   } catch (err) {
     await userRepo.deleteById(owner._id);

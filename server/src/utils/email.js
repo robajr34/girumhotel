@@ -24,31 +24,78 @@ const transporter = nodemailer.createTransport({
   host: process.env.SMTP_HOST,
   port: Number(process.env.SMTP_PORT),
   secure: process.env.SMTP_PORT === "465", // true for 465, false for 587
+
   auth: {
     user: process.env.SMTP_USER,
     pass: process.env.SMTP_PASSWORD,
   },
+
   tls: {
-    rejectUnauthorized: false,
+    minVersion: "TLSv1.2",
+    rejectUnauthorized: false, // ⚠️ Only for development/debugging
   },
+
+  connectionTimeout: 15_000, // Increased from 10s
+  greetingTimeout: 15_000,
+  socketTimeout: 30_000, // Increased from 20s
+
+  pool: true,
+  maxConnections: 3, // Reduced from 5
+  maxMessages: 50, // Reduced from 100
+});
+
+// Add connection verification on startup
+transporter.on("error", (err) => {
+  logger.error("Email transporter error", {
+    code: err.code,
+    message: err.message,
+    command: err.command,
+  });
+});
+
+transporter.on("idle", () => {
+  logger.info("Email transporter idle");
 });
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
+const isRetryableError = (error) => {
+  const retryableCodes = [
+    "ECONNECTION",
+    "ETIMEDOUT",
+    "ESOCKET",
+    "ECONNRESET",
+    "EAI_AGAIN",
+    "ENOTFOUND",
+  ];
+
+  const retryableResponseCodes = [421, 450, 451, 452];
+
+  return (
+    retryableCodes.includes(error.code) ||
+    retryableResponseCodes.includes(error.responseCode)
+  );
+};
+
 export const verifyEmailConnection = async () => {
   try {
-    await transporter.verify();
-    logger.info("✅ Email SMTP connection verified", {
+    logger.info("Verifying email server connection", {
       host: process.env.SMTP_HOST,
       port: process.env.SMTP_PORT,
     });
+
+    await transporter.verify();
+    logger.info("✅ Email server connection verified");
     return true;
   } catch (error) {
-    logger.error("❌ Email SMTP connection failed", {
+    logger.error("❌ Email server connection failed", {
       host: process.env.SMTP_HOST,
       port: process.env.SMTP_PORT,
-      error: error.message,
+      code: error.code,
+      responseCode: error.responseCode,
+      message: error.message,
     });
+
     throw new AppError(
       "Unable to connect to email server.",
       503,
@@ -93,11 +140,6 @@ export const sendEmail = async ({
 
   for (let attempt = 1; attempt <= attempts; attempt++) {
     try {
-      logger.info(`📧 Sending email (attempt ${attempt}/${attempts})`, {
-        to,
-        subject,
-      });
-
       const info = await transporter.sendMail({
         from: process.env.EMAIL_FROM,
         to,
@@ -127,34 +169,27 @@ export const sendEmail = async ({
         attempt,
         attempts,
         code: error.code,
+        responseCode: error.responseCode,
         message: error.message,
+        command: error.command,
       });
 
-      // Permanent authentication errors - don't retry
-      if (
-        error.message?.includes("Invalid login") ||
-        error.message?.includes("username and password not accepted") ||
-        error.code === "EAUTH"
-      ) {
-        logger.error("❌ SMTP authentication failed - check credentials", {
-          user: process.env.SMTP_USER,
-          host: process.env.SMTP_HOST,
-        });
+      if (!isRetryableError(error) || attempt === attempts) {
         break;
       }
 
-      if (attempt < attempts) {
-        const backoffMs = 1000 * Math.pow(2, attempt - 1);
-        logger.info(`Retrying in ${backoffMs}ms...`);
-        await sleep(backoffMs);
-      }
+      const backoffMs = 1000 * Math.pow(2, attempt - 1);
+      logger.info(`Retrying email in ${backoffMs}ms...`);
+      await sleep(backoffMs);
     }
   }
 
   logger.error("❌ Email sending failed after all retries", {
     to,
     subject,
-    lastError: lastError?.message,
+    code: lastError?.code,
+    responseCode: lastError?.responseCode,
+    message: lastError?.message,
   });
 
   throw new AppError(
