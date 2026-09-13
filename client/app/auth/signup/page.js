@@ -6,7 +6,16 @@ import { HOTEL } from "@/constants/hotel";
 import { useAuth } from "@/context/AuthContext";
 import Input from "@/components/ui/Input";
 import Button from "@/components/ui/Button";
-import { Mail, Lock, Eye, EyeOff, Hotel, CheckCircle2, ArrowRight } from "lucide-react";
+import {
+  Mail,
+  Lock,
+  Eye,
+  EyeOff,
+  Hotel,
+  CheckCircle2,
+  ArrowRight,
+} from "lucide-react";
+import Image from "next/image";
 
 export default function SignupPage() {
   const { signup } = useAuth();
@@ -67,9 +76,16 @@ export default function SignupPage() {
             href="/"
             className="inline-flex items-center gap-2.5 px-3 py-1.5 rounded-2xl bg-white border border-slate-200/80 shadow-xs mb-4 hover:border-slate-300 transition-colors"
           >
-            <div className="w-7 h-7 rounded-xl bg-slate-900 flex items-center justify-center text-white">
-              <Hotel className="h-4 w-4" />
+            <div className="w-10 h-10 rounded-xl overflow-hidden flex items-center justify-center">
+              <Image
+                src={HOTEL.logo}
+                alt={`${HOTEL.websiteName} logo`}
+                width={38}
+                height={38}
+                className="w-full h-full object-cover"
+              />
             </div>
+
             <span className="text-xs font-semibold tracking-wider uppercase text-slate-800">
               {HOTEL.websiteName}
             </span>
@@ -123,7 +139,9 @@ export default function SignupPage() {
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
                     className="text-slate-400 hover:text-slate-600 cursor-pointer p-1"
-                    aria-label={showPassword ? "Hide password" : "Show password"}
+                    aria-label={
+                      showPassword ? "Hide password" : "Show password"
+                    }
                   >
                     {showPassword ? (
                       <EyeOff className="h-4 w-4" />
@@ -147,7 +165,8 @@ export default function SignupPage() {
                 value={formData.confirmPassword}
                 onChange={(e) => {
                   setFormData({ ...formData, confirmPassword: e.target.value });
-                  if (errors.confirmPassword) setErrors({ ...errors, confirmPassword: null });
+                  if (errors.confirmPassword)
+                    setErrors({ ...errors, confirmPassword: null });
                 }}
                 error={errors.confirmPassword}
                 leftIcon={<Lock className="h-4 w-4" />}

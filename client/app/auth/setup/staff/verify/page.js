@@ -7,6 +7,8 @@ import { useAuth } from "@/context/AuthContext";
 import Input from "@/components/ui/Input";
 import Button from "@/components/ui/Button";
 import { KeyRound, Lock, Eye, EyeOff, User, Phone, CheckCircle2, ArrowRight } from "lucide-react";
+import Image from "next/image";
+import { HOTEL } from "@/constants/hotel";
 
 function StaffVerifyContent() {
   const searchParams = useSearchParams();
@@ -107,16 +109,40 @@ function StaffVerifyContent() {
   return (
     <div className="min-h-screen flex flex-col justify-center items-center py-12 px-4 sm:px-6 lg:px-8 bg-slate-50/50">
       <div className="w-full max-w-lg">
+        <div className="text-center mb-8">
+          <Link
+            href="/"
+            className="inline-flex items-center gap-2.5 px-3 py-1.5 rounded-2xl bg-white border border-slate-200/80 shadow-xs mb-4 hover:border-slate-300 transition-colors"
+          >
+            <div className="w-10 h-10 rounded-xl overflow-hidden flex items-center justify-center">
+              <Image
+                src={HOTEL.logo}
+                alt={`${HOTEL.websiteName} logo`}
+                width={38}
+                height={38}
+                className="w-full h-full object-cover"
+              />
+            </div>
+
+            <span className="text-xs md:text-sm font-semibold tracking-wider uppercase text-slate-800">
+              {HOTEL.websiteName}
+            </span>
+          </Link>
+        </div>
         {/* Wizard Steps Indicator */}
         <div className="mb-8">
           <div className="flex items-center justify-between text-xs font-semibold text-slate-400 mb-2">
             <span className="text-[#8c6838]">1. Activate Invitation</span>
-            <span className={step >= 2 ? "text-[#8c6838]" : ""}>2. Staff Profile</span>
+            <span className={step >= 2 ? "text-[#8c6838]" : ""}>
+              2. Staff Profile
+            </span>
             <span>3. Get Started</span>
           </div>
           <div className="grid grid-cols-3 gap-2">
             <div className="h-1.5 rounded-full bg-[#b48c58]" />
-            <div className={`h-1.5 rounded-full ${step >= 2 ? "bg-[#b48c58]" : "bg-slate-200"}`} />
+            <div
+              className={`h-1.5 rounded-full ${step >= 2 ? "bg-[#b48c58]" : "bg-slate-200"}`}
+            />
             <div className="h-1.5 rounded-full bg-slate-200" />
           </div>
         </div>
@@ -139,7 +165,11 @@ function StaffVerifyContent() {
                 </div>
               </div>
 
-              <form onSubmit={handleVerifyStaff} className="space-y-4" noValidate>
+              <form
+                onSubmit={handleVerifyStaff}
+                className="space-y-4"
+                noValidate
+              >
                 <Input
                   label="Invitation Token"
                   id="token"
@@ -164,7 +194,8 @@ function StaffVerifyContent() {
                   value={password}
                   onChange={(e) => {
                     setPassword(e.target.value);
-                    if (errors.password) setErrors({ ...errors, password: null });
+                    if (errors.password)
+                      setErrors({ ...errors, password: null });
                   }}
                   error={errors.password}
                   leftIcon={<Lock className="h-4 w-4" />}
@@ -173,7 +204,9 @@ function StaffVerifyContent() {
                       type="button"
                       onClick={() => setShowPassword(!showPassword)}
                       className="text-slate-400 hover:text-slate-600 cursor-pointer p-1"
-                      aria-label={showPassword ? "Hide password" : "Show password"}
+                      aria-label={
+                        showPassword ? "Hide password" : "Show password"
+                      }
                     >
                       {showPassword ? (
                         <EyeOff className="h-4 w-4" />
@@ -194,7 +227,8 @@ function StaffVerifyContent() {
                   value={confirmPassword}
                   onChange={(e) => {
                     setConfirmPassword(e.target.value);
-                    if (errors.confirmPassword) setErrors({ ...errors, confirmPassword: null });
+                    if (errors.confirmPassword)
+                      setErrors({ ...errors, confirmPassword: null });
                   }}
                   error={errors.confirmPassword}
                   leftIcon={<Lock className="h-4 w-4" />}
@@ -228,7 +262,11 @@ function StaffVerifyContent() {
                 </div>
               </div>
 
-              <form onSubmit={handleCompleteProfile} className="space-y-4" noValidate>
+              <form
+                onSubmit={handleCompleteProfile}
+                className="space-y-4"
+                noValidate
+              >
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <Input
                     label="First Name"
@@ -238,8 +276,12 @@ function StaffVerifyContent() {
                     required
                     value={profileData.firstName}
                     onChange={(e) => {
-                      setProfileData({ ...profileData, firstName: e.target.value });
-                      if (profileErrors.firstName) setProfileErrors({ ...profileErrors, firstName: null });
+                      setProfileData({
+                        ...profileData,
+                        firstName: e.target.value,
+                      });
+                      if (profileErrors.firstName)
+                        setProfileErrors({ ...profileErrors, firstName: null });
                     }}
                     error={profileErrors.firstName}
                     leftIcon={<User className="h-4 w-4" />}
@@ -253,8 +295,12 @@ function StaffVerifyContent() {
                     required
                     value={profileData.lastName}
                     onChange={(e) => {
-                      setProfileData({ ...profileData, lastName: e.target.value });
-                      if (profileErrors.lastName) setProfileErrors({ ...profileErrors, lastName: null });
+                      setProfileData({
+                        ...profileData,
+                        lastName: e.target.value,
+                      });
+                      if (profileErrors.lastName)
+                        setProfileErrors({ ...profileErrors, lastName: null });
                     }}
                     error={profileErrors.lastName}
                     leftIcon={<User className="h-4 w-4" />}
@@ -271,7 +317,8 @@ function StaffVerifyContent() {
                   value={profileData.phone}
                   onChange={(e) => {
                     setProfileData({ ...profileData, phone: e.target.value });
-                    if (profileErrors.phone) setProfileErrors({ ...profileErrors, phone: null });
+                    if (profileErrors.phone)
+                      setProfileErrors({ ...profileErrors, phone: null });
                   }}
                   error={profileErrors.phone}
                   leftIcon={<Phone className="h-4 w-4" />}
