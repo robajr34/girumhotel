@@ -55,7 +55,7 @@ transporter.on("error", (err) => {
 });
 
 transporter.on("idle", () => {
-  logger.debug("Email transporter idle");
+  logger.info("Email transporter idle");
 });
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
