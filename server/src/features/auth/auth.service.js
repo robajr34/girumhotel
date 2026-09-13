@@ -273,7 +273,7 @@ export const setupOwnerService = async ({ email, password }) => {
       requestedEmail: email,
     });
 
-    throw new AppError("Owner already exist.", 409, "USER_EXIST")
+    throw new AppError("Owner already exist.", 409, "USER_EXIST");
   }
 
   if (ownerExist) {
@@ -305,10 +305,11 @@ export const setupOwnerService = async ({ email, password }) => {
 
   const verificationUrl = `${env.frontendUrl}/setup/owner/verify?token=${rawToken}`;
 
-  await sendEmail({
-    to: owner.email,
-    subject: "Verify your owner account",
-    html: `
+  try {
+    await sendEmail({
+      to: owner.email,
+      subject: "Verify your owner account",
+      html: `
       <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -520,7 +521,12 @@ export const setupOwnerService = async ({ email, password }) => {
 </body>
 </html>
     `,
-  });
+    });
+  } catch (err) {
+    await userRepo.deleteById(owner._id);
+    logger.error("Error sendind email.");
+    throw err;
+  }
 
   logger.info("Owner setup verification email sent", {
     userId: owner._id,
