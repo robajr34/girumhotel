@@ -46,6 +46,8 @@ export const guestLoginService = async ({ email, password }) => {
     throw new AppError("Invalid credentials", 401, "INVALID_CREDENTIALS");
   }
 
+  userExist.lastLoginAt = new Date();
+
   const { password: _, ...user } = userExist.toObject();
 
   const { accessToken, refreshToken } = generateBothTokens({
@@ -63,6 +65,7 @@ export const guestLoginService = async ({ email, password }) => {
     isRevoked: false,
   });
 
+  await userExist.save();
   logger.info("Guest login successful", {
     userId: user._id,
     role: user.role,
@@ -93,6 +96,7 @@ export const guestSignupService = async ({ email, password }) => {
     email,
     password: hashedPassword,
     role: "guest",
+    lastLoginAt: new Date(),
   });
 
   const { password: _, ...user } = newUser.toObject();
