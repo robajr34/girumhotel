@@ -28,6 +28,7 @@ export default function Navbar() {
     { label: "Home", href: "/" },
     { label: "Rooms & Suites", href: "/rooms" },
     { label: "Dining & Menu", href: "/menu" },
+    { label: "Gallery", href: "/gallery" },
   ];
 
   return (

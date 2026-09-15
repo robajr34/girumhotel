@@ -58,6 +58,14 @@ export default function Footer() {
               </li>
               <li>
                 <Link
+                  href="/gallery"
+                  className="hover:text-white transition-colors"
+                >
+                  Hotel Gallery
+                </Link>
+              </li>
+              <li>
+                <Link
                   href="/auth/signup"
                   className="hover:text-white transition-colors"
                 >
