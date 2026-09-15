@@ -56,7 +56,7 @@ export default function DashboardPage() {
   const router = useRouter();
 
   const [loading, setLoading] = useState(true);
-  const [chartType, setChartType] = useState("line");
+  const [chartType, setChartType] = useState("composed");
   const [stats, setStats] = useState({
     totalRevenue: 0,
     totalBookings: 0,
@@ -430,9 +430,9 @@ export default function DashboardPage() {
                 {/* Chart-type segmented selector */}
                 <div className="flex items-center rounded-xl border border-slate-200 bg-slate-50 p-1 gap-0.5">
                   {[
+                    { value: "composed", label: "Composed" },
                     { value: "line", label: "Line" },
                     { value: "bar", label: "Bar" },
-                    { value: "composed", label: "Composed" },
                   ].map((opt) => (
                     <button
                       key={opt.value}
