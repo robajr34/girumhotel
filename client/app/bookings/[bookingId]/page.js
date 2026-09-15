@@ -10,6 +10,7 @@ import Card, { CardHeader, CardTitle } from "@/components/ui/Card";
 import Button from "@/components/ui/Button";
 import Badge from "@/components/ui/Badge";
 import ConfirmDialog from "@/components/ui/ConfirmDialog";
+import BankDetailsModal from "@/components/BankDetailsModal";
 import { Skeleton } from "@/components/ui/Skeleton";
 import bookingApi from "@/services/bookingApi";
 import { getErrorMessage } from "@/services/api";
@@ -26,7 +27,8 @@ import {
   CheckCircle2,
   XCircle,
   AlertCircle,
-  FileText
+  FileText,
+  Landmark
 } from "lucide-react";
 
 export default function BookingDetailPage({ params }) {
@@ -44,6 +46,7 @@ export default function BookingDetailPage({ params }) {
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [confirmAction, setConfirmAction] = useState(null); // 'cancel' | 'delete'
   const [confirmLoading, setConfirmLoading] = useState(false);
+  const [bankModalOpen, setBankModalOpen] = useState(false);
 
   const fetchBooking = async () => {
     try {
@@ -342,10 +345,19 @@ export default function BookingDetailPage({ params }) {
                 )}
 
                 {/* Price Total */}
-                <div className="flex items-center justify-between pt-4 border-t border-slate-100">
-                  <span className="text-sm font-bold text-slate-800">
-                    Total Booking Amount
-                  </span>
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-4 border-t border-slate-100">
+                  <div>
+                    <span className="text-sm font-bold text-slate-800">
+                      Total Booking Amount
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setBankModalOpen(true)}
+                      className="text-xs text-[#8c6838] font-semibold hover:underline block cursor-pointer"
+                    >
+                      View Hotel Bank Details ↗
+                    </button>
+                  </div>
                   <p className="text-xl font-extrabold text-[#8c6838]">
                     {booking.totalPrice?.toLocaleString()} {booking.currency}
                   </p>
@@ -440,6 +452,11 @@ export default function BookingDetailPage({ params }) {
               : "This action cannot be undone. The reservation record will be permanently deleted."
           }
           confirmText={confirmAction === "cancel" ? "Cancel Reservation" : "Delete Booking"}
+        />
+
+        <BankDetailsModal
+          isOpen={bankModalOpen}
+          onClose={() => setBankModalOpen(false)}
         />
       </AppShell>
     </ProtectedRoute>

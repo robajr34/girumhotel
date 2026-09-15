@@ -21,5 +21,22 @@ export const HOTEL = {
     "Hotel in Ethiopia",
   ],
   heroImage: "/hotel-hero.jpg",
-  logo:"/logo.jpg"
+  logo: "/logo.jpg",
+  bankDetails: [
+    {
+      bankName: "Commercial Bank of Ethiopia",
+      accountName: "Girum Hotel",
+      accountNumber: "1000123456789",
+    },
+    {
+      bankName: "Awash Bank",
+      accountName: "Girum Hotel",
+      accountNumber: "0100123456789",
+    },
+    {
+      bankName: "Dashen Bank",
+      accountName: "Girum Hotel",
+      accountNumber: "001234567890",
+    },
+  ],
 };

@@ -6,11 +6,12 @@ import bookingApi from "@/services/bookingApi";
 import roomApi from "@/services/roomApi";
 import { getErrorMessage } from "@/services/api";
 import Modal from "@/components/ui/Modal";
+import BankDetailsModal from "@/components/BankDetailsModal";
 import Input from "@/components/ui/Input";
 import Select from "@/components/ui/Select";
 import Button from "@/components/ui/Button";
 import { toast } from "sonner";
-import { Calendar, User, Phone, Globe, DollarSign, BedDouble, Info, ArrowRight } from "lucide-react";
+import { Calendar, User, Phone, Globe, DollarSign, BedDouble, Info, ArrowRight, Landmark } from "lucide-react";
 import Link from "next/link";
 
 export default function CreateBookingModal({
@@ -24,6 +25,7 @@ export default function CreateBookingModal({
   const [availableRooms, setAvailableRooms] = useState([]);
   const [loadingRooms, setLoadingRooms] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [bankModalOpen, setBankModalOpen] = useState(false);
 
   // Form state
   const [formData, setFormData] = useState({
@@ -387,19 +389,36 @@ export default function CreateBookingModal({
           </div>
 
           {/* Actions */}
-          <div className="flex items-center justify-end gap-3 pt-3 border-t border-slate-100">
-            <Button type="button" variant="outline" onClick={onClose} disabled={submitting}>
-              Cancel
-            </Button>
+          <div className="flex items-center justify-between pt-3 border-t border-slate-100">
             <Button
-              type="submit"
-              variant="gold"
-              isLoading={submitting}
-              rightIcon={<ArrowRight className="h-4 w-4" />}
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => setBankModalOpen(true)}
+              leftIcon={<Landmark className="h-4 w-4 text-[#8c6838]" />}
             >
-              Confirm Reservation
+              Bank Details
             </Button>
+
+            <div className="flex items-center gap-3">
+              <Button type="button" variant="outline" onClick={onClose} disabled={submitting}>
+                Cancel
+              </Button>
+              <Button
+                type="submit"
+                variant="gold"
+                isLoading={submitting}
+                rightIcon={<ArrowRight className="h-4 w-4" />}
+              >
+                Confirm Reservation
+              </Button>
+            </div>
           </div>
+
+          <BankDetailsModal
+            isOpen={bankModalOpen}
+            onClose={() => setBankModalOpen(false)}
+          />
         </form>
       )}
     </Modal>

@@ -102,79 +102,79 @@ export function AuthProvider({ children }) {
    * from consuming the same rotating refresh token twice.
    */
 
- useEffect(() => {
-   let mounted = true;
+  useEffect(() => {
+    let mounted = true;
 
-   const initializeAuth = async () => {
-     const storedToken = getToken();
+    const initializeAuth = async () => {
+      const storedToken = getToken();
 
-     if (!storedToken) {
-       if (mounted) {
-         setIsLoading(false);
-       }
+      if (!storedToken) {
+        if (mounted) {
+          setIsLoading(false);
+        }
 
-       return;
-     }
+        return;
+      }
 
-     if (mounted) {
-       setToken(storedToken);
-     }
+      if (mounted) {
+        setToken(storedToken);
+      }
 
-     try {
-       /*
-        * Restore the authenticated user.
-        *
-        * getMe() identifies the user from the access token.
-        * It works for both guests and staff.
-        *
-        * If the access token is expired, the Axios interceptor
-        * should refresh it and retry this request.
-        */
-       const response = await userApi.getMe();
+      try {
+        /*
+         * Restore the authenticated user.
+         *
+         * getMe() identifies the user from the access token.
+         * It works for both guests and staff.
+         *
+         * If the access token is expired, the Axios interceptor
+         * should refresh it and retry this request.
+         */
+        const response = await userApi.getMe();
 
-       if (!mounted) {
-         return;
-       }
+        if (!mounted) {
+          return;
+        }
 
-       const userData = response.data?.data;
+        const userData = response.data?.data;
 
-       if (!userData) {
-         throw new Error("Unable to restore authenticated user.");
-       }
+        if (!userData) {
+          throw new Error("Unable to restore authenticated user.");
+        }
 
-       setUser(userData);
+        setUser(userData);
 
-       /*
-        * Fetch the profile appropriate for the user's role.
-        *
-        * Staff → staff profile
-        * Guest → currently no profile request
-        */
-       await fetchProfile(userData);
-     } catch (error) {
-       if (!mounted) {
-         return;
-       }
+        /*
+         * Fetch the profile appropriate for the user's role.
+         *
+         * Staff → staff profile
+         * Guest → currently no profile request
+         */
+        await fetchProfile(userData);
+      } catch (error) {
+        if (!mounted) {
+          return;
+        }
 
-       deleteToken();
+        deleteToken();
 
-       setToken(null);
-       setUser(null);
-       setStaffProfile(null);
-       setGuestProfile(null);
-     } finally {
-       if (mounted) {
-         setIsLoading(false);
-       }
-     }
-   };
+        setToken(null);
+        setUser(null);
+        setStaffProfile(null);
+        setGuestProfile(null);
+      } finally {
+        if (mounted) {
+          setIsLoading(false);
+        }
+      }
+    };
 
-   initializeAuth();
+    initializeAuth();
 
-   return () => {
-     mounted = false;
-   };
- }, [fetchProfile]);
+    return () => {
+      mounted = false;
+    };
+  }, [fetchProfile]);
 
   /*
    * ============================================================
@@ -329,7 +329,7 @@ export function AuthProvider({ children }) {
 
       toast.success(
         response.data?.message ||
-          "Owner account created. Please check your email to verify your account.",
+        "Owner account created. Please check your email to verify your account.",
       );
 
       return response.data;
@@ -462,17 +462,23 @@ export function AuthProvider({ children }) {
    * ============================================================
    */
 
-  const logout = useCallback(() => {
-    deleteToken();
+  const logout = useCallback(async () => {
+    try {
+      await authApi.logout();
+    } catch (error) {
+      console.error("Logout request failed:", error);
+    } finally {
+      deleteToken();
 
-    setToken(null);
-    setUser(null);
-    setStaffProfile(null);
-    setGuestProfile(null);
+      setToken(null);
+      setUser(null);
+      setStaffProfile(null);
+      setGuestProfile(null);
 
-    toast.success("Logged out successfully.");
+      toast.success("Logged out successfully.");
 
-    router.push("/auth/login");
+      router.replace("/auth/login");
+    }
   }, [router]);
 
   /*

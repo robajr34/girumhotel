@@ -1,9 +1,14 @@
-import React from "react";
+"use client";
+
+import React, { useState } from "react";
 import Link from "next/link";
 import { HOTEL } from "@/constants/hotel";
-import { Hotel, MapPin, Phone, Mail, MapPinned } from "lucide-react";
+import BankDetailsModal from "@/components/BankDetailsModal";
+import { Hotel, MapPin, Phone, Mail, MapPinned, Landmark } from "lucide-react";
 
 export default function Footer() {
+  const [bankModalOpen, setBankModalOpen] = useState(false);
+
   const hasContactDetails =
     HOTEL.contact.phone || HOTEL.contact.email || HOTEL.contact.address;
 
@@ -60,12 +65,14 @@ export default function Footer() {
                 </Link>
               </li>
               <li>
-                <Link
-                  href="/auth/login"
-                  className="hover:text-white transition-colors"
+                <button
+                  type="button"
+                  onClick={() => setBankModalOpen(true)}
+                  className="hover:text-white transition-colors cursor-pointer text-left inline-flex items-center gap-1.5"
                 >
-                  Sign In
-                </Link>
+                  <Landmark className="h-3.5 w-3.5 text-[#b48c58]" />
+                  <span>Bank Details</span>
+                </button>
               </li>
             </ul>
           </div>
@@ -114,6 +121,13 @@ export default function Footer() {
             reserved.
           </p>
           <div className="flex items-center gap-6">
+            <button
+              type="button"
+              onClick={() => setBankModalOpen(true)}
+              className="hover:text-slate-300 transition-colors cursor-pointer"
+            >
+              Bank Accounts
+            </button>
             <Link
               href="/auth/setup/owner"
               className="hover:text-slate-300 transition-colors"
@@ -129,6 +143,11 @@ export default function Footer() {
           </div>
         </div>
       </div>
+
+      <BankDetailsModal
+        isOpen={bankModalOpen}
+        onClose={() => setBankModalOpen(false)}
+      />
     </footer>
   );
 }

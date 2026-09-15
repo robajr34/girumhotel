@@ -8,6 +8,7 @@ import Footer from "@/components/public/Footer";
 import Button from "@/components/ui/Button";
 import Badge from "@/components/ui/Badge";
 import Card from "@/components/ui/Card";
+import Select from "@/components/ui/Select";
 import { Skeleton } from "@/components/ui/Skeleton";
 import OptimizedImage from "@/components/ui/OptimizedImage";
 import CreateBookingModal from "@/components/bookings/CreateBookingModal";
@@ -239,21 +240,20 @@ export default function LandingPage() {
           <div className="bg-white rounded-3xl border border-slate-200/80 shadow-soft p-5 sm:p-7 backdrop-blur-md">
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 items-end">
               <div>
-                <label className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5 block">
-                  Room Type
-                </label>
-                <select
+                <Select
+                  label="Room Type"
+                  id="searchRoomType"
                   value={searchParams.type}
                   onChange={(e) =>
                     setSearchParams({ ...searchParams, type: e.target.value })
                   }
-                  className="w-full text-xs font-semibold bg-slate-50 rounded-xl border border-slate-200 py-3 px-3.5 text-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-900"
-                >
-                  <option value="">All Categories</option>
-                  <option value="single">Single Suite</option>
-                  <option value="double">Double Deluxe</option>
-                  <option value="family">Family Executive</option>
-                </select>
+                  options={[
+                    { value: "", label: "All Categories" },
+                    { value: "single", label: "Single Suite" },
+                    { value: "double", label: "Double Deluxe" },
+                    { value: "family", label: "Family Executive" },
+                  ]}
+                />
               </div>
 
               <div>
