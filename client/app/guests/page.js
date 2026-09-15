@@ -176,8 +176,8 @@ export default function GuestsPage() {
             <form onSubmit={handleSearchSubmit} className="max-w-xs w-full">
               <Input
                 placeholder="Search by name or phone..."
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
                 leftIcon={<Search className="h-4 w-4" />}
               />
             </form>
@@ -281,7 +281,7 @@ export default function GuestsPage() {
           </Card>
 
           {/* Pagination */}
-          {meta.totalPages > 1 && !search && (
+          {meta.totalPages > 1 && !searchTerm && (
             <div className="flex items-center justify-between pt-4">
               <span className="text-xs text-slate-500">
                 Page {meta.page} of {meta.totalPages} ({meta.total} guests total)

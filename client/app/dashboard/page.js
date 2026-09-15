@@ -22,6 +22,7 @@ import {
   Area,
   BarChart,
   Bar,
+  ComposedChart,
   PieChart,
   Pie,
   Cell,
@@ -55,6 +56,7 @@ export default function DashboardPage() {
   const router = useRouter();
 
   const [loading, setLoading] = useState(true);
+  const [chartType, setChartType] = useState("line");
   const [stats, setStats] = useState({
     totalRevenue: 0,
     totalBookings: 0,
@@ -188,7 +190,7 @@ export default function DashboardPage() {
         ].filter((item) => item.value > 0),
       );
 
-      // Area Chart: Monthly Revenue (computed or grouped by month)
+      // Monthly Revenue + Booking Count (used by Line, Bar, and Composed charts)
       const months = [
         "Jan",
         "Feb",
@@ -203,13 +205,15 @@ export default function DashboardPage() {
         "Nov",
         "Dec",
       ];
-      const monthlyBuckets = {};
+      const monthlyRevenue = {};
+      const monthlyBookings = {};
       const currentMonthIdx = new Date().getMonth();
 
       // Seed last 6 months
       for (let i = 5; i >= 0; i--) {
         const mIdx = (currentMonthIdx - i + 12) % 12;
-        monthlyBuckets[months[mIdx]] = 0;
+        monthlyRevenue[months[mIdx]] = 0;
+        monthlyBookings[months[mIdx]] = 0;
       }
 
       bookings.forEach((b) => {
@@ -219,15 +223,17 @@ export default function DashboardPage() {
         ) {
           const date = new Date(b.createdAt);
           const monthName = months[date.getMonth()];
-          if (monthlyBuckets[monthName] !== undefined) {
-            monthlyBuckets[monthName] += b.totalPrice || 0;
+          if (monthlyRevenue[monthName] !== undefined) {
+            monthlyRevenue[monthName] += b.totalPrice || 0;
+            monthlyBookings[monthName] += 1;
           }
         }
       });
 
-      const trendData = Object.keys(monthlyBuckets).map((m) => ({
+      const trendData = Object.keys(monthlyRevenue).map((m) => ({
         month: m,
-        revenue: monthlyBuckets[m],
+        revenue: monthlyRevenue[m],
+        bookings: monthlyBookings[m],
       }));
 
       // If all buckets are 0 (e.g. fresh database), seed current month with calculated total for meaningful visualization
@@ -413,185 +419,337 @@ export default function DashboardPage() {
           {/* ===================================================
               2. VISUAL ANALYTICS (RECHARTS)
           =================================================== */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            {/* Revenue Trend (Area Chart - 2 cols) */}
-            <Card className="lg:col-span-2">
+          <div className="space-y-6">
+            {/* Revenue Overview — switchable chart */}
+            <Card className="w-full">
               <CardHeader>
                 <CardTitle subtitle="Monthly gross booking revenue in ETB">
-                  Revenue Growth Trajectory
+                  Revenue Overview
                 </CardTitle>
-                <Badge variant="gold" size="sm">
-                  Gross ETB
-                </Badge>
-              </CardHeader>
 
-              <div className="h-64 sm:h-72 w-full pt-2">
-                <ResponsiveContainer width="100%" height="100%">
-                  {" "}
-                  <LineChart
-                    data={revenueData}
-                    margin={{ top: 10, right: 10, left: 0, bottom: 0 }}
-                  >
-                    {" "}
-                    <CartesianGrid
-                      strokeDasharray="3 3"
-                      stroke="#f1f5f9"
-                      vertical={false}
-                    />{" "}
-                    <XAxis
-                      dataKey="month"
-                      stroke="#94a3b8"
-                      fontSize={11}
-                      tickLine={false}
-                      axisLine={false}
-                    />{" "}
-                    <YAxis
-                      stroke="#94a3b8"
-                      fontSize={11}
-                      tickLine={false}
-                      axisLine={false}
-                      tickFormatter={(val) => `${(val / 1000).toFixed(0)}k`}
-                    />{" "}
-                    <Tooltip
-                      formatter={(val) => [
-                        `${Number(val).toLocaleString()} ETB`,
-                        "Revenue",
-                      ]}
-                      contentStyle={{
-                        backgroundColor: "#0f172a",
-                        color: "#ffffff",
-                        borderRadius: "12px",
-                        fontSize: "12px",
-                        border: "none",
-                      }}
-                    />{" "}
-                    <Line
-                      type="monotone"
-                      dataKey="revenue"
-                      stroke="#b48c58"
-                      strokeWidth={2.5}
-                      dot={false}
-                      activeDot={{ r: 5, strokeWidth: 2 }}
-                    />{" "}
-                  </LineChart>{" "}
-                </ResponsiveContainer>
-              </div>
-            </Card>
-
-            {/* Room Status Distribution (Pie Chart - 1 col) */}
-            <Card>
-              <CardHeader>
-                <CardTitle subtitle="Current state of all hotel rooms">
-                  Room Allocation
-                </CardTitle>
-              </CardHeader>
-
-              <div className="h-64 sm:h-72 w-full flex flex-col items-center justify-center">
-                <ResponsiveContainer width="100%" height="80%">
-                  <PieChart>
-                    <Pie
-                      data={roomStatusData}
-                      cx="50%"
-                      cy="50%"
-                      innerRadius={50}
-                      outerRadius={75}
-                      paddingAngle={4}
-                      dataKey="value"
+                {/* Chart-type segmented selector */}
+                <div className="flex items-center rounded-xl border border-slate-200 bg-slate-50 p-1 gap-0.5">
+                  {[
+                    { value: "line", label: "Line" },
+                    { value: "bar", label: "Bar" },
+                    { value: "composed", label: "Composed" },
+                  ].map((opt) => (
+                    <button
+                      key={opt.value}
+                      type="button"
+                      onClick={() => setChartType(opt.value)}
+                      className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-all duration-150 ${
+                        chartType === opt.value
+                          ? "bg-white text-[#8c6838] shadow-sm border border-slate-200"
+                          : "text-slate-500 hover:text-slate-700"
+                      }`}
                     >
-                      {roomStatusData.map((entry, index) => (
-                        <Cell
-                          key={`cell-${index}`}
-                          fill={entry.color || COLORS[index % COLORS.length]}
-                        />
-                      ))}
-                    </Pie>
-                    <Tooltip
-                      formatter={(val, name) => [val, name]}
-                      contentStyle={{
-                        backgroundColor: "#0f172a",
-                        color: "#ffffff",
-                        borderRadius: "12px",
-                        fontSize: "12px",
-                      }}
-                    />
-                  </PieChart>
-                </ResponsiveContainer>
-
-                <div className="flex flex-wrap items-center justify-center gap-3 pt-2 text-[11px] text-slate-600">
-                  {roomStatusData.map((d, i) => (
-                    <div key={i} className="flex items-center gap-1.5">
-                      <span
-                        className="w-2.5 h-2.5 rounded-full"
-                        style={{ backgroundColor: d.color }}
-                      />
-                      <span>
-                        {d.name}: <strong>{d.value}</strong>
-                      </span>
-                    </div>
+                      {opt.label}
+                    </button>
                   ))}
                 </div>
+              </CardHeader>
+
+              {/* Fixed-height wrapper prevents layout shifts when switching */}
+              <div className="h-64 sm:h-72 w-full pt-2">
+                <ResponsiveContainer width="100%" height="100%">
+                  {chartType === "bar" ? (
+                    <BarChart
+                      data={revenueData}
+                      margin={{ top: 10, right: 10, left: 0, bottom: 0 }}
+                    >
+                      <CartesianGrid
+                        strokeDasharray="3 3"
+                        stroke="#f1f5f9"
+                        vertical={false}
+                      />
+                      <XAxis
+                        dataKey="month"
+                        stroke="#94a3b8"
+                        fontSize={11}
+                        tickLine={false}
+                        axisLine={false}
+                      />
+                      <YAxis
+                        stroke="#94a3b8"
+                        fontSize={11}
+                        tickLine={false}
+                        axisLine={false}
+                        tickFormatter={(val) => `${(val / 1000).toFixed(0)}k`}
+                      />
+                      <Tooltip
+                        formatter={(val) => [
+                          `${Number(val).toLocaleString()} ETB`,
+                          "Revenue",
+                        ]}
+                        contentStyle={{
+                          backgroundColor: "#0f172a",
+                          color: "#ffffff",
+                          borderRadius: "12px",
+                          fontSize: "12px",
+                          border: "none",
+                        }}
+                      />
+                      <Bar
+                        dataKey="revenue"
+                        fill="#b48c58"
+                        radius={[6, 6, 0, 0]}
+                        maxBarSize={48}
+                      />
+                    </BarChart>
+                  ) : chartType === "composed" ? (
+                    <ComposedChart
+                      data={revenueData}
+                      margin={{ top: 10, right: 10, left: 0, bottom: 0 }}
+                    >
+                      <CartesianGrid
+                        strokeDasharray="3 3"
+                        stroke="#f1f5f9"
+                        vertical={false}
+                      />
+                      <XAxis
+                        dataKey="month"
+                        stroke="#94a3b8"
+                        fontSize={11}
+                        tickLine={false}
+                        axisLine={false}
+                      />
+
+                      {/* Left axis: revenue */}
+                      <YAxis
+                        yAxisId="revenue"
+                        orientation="left"
+                        stroke="#94a3b8"
+                        fontSize={11}
+                        tickLine={false}
+                        axisLine={false}
+                        tickFormatter={(val) => `${(val / 1000).toFixed(0)}k`}
+                      />
+
+                      {/* Right axis: booking count */}
+                      <YAxis
+                        yAxisId="bookings"
+                        orientation="right"
+                        stroke="#94a3b8"
+                        fontSize={11}
+                        tickLine={false}
+                        axisLine={false}
+                        allowDecimals={false}
+                      />
+
+                      <Tooltip
+                        formatter={(val, name) => {
+                          if (name === "revenue")
+                            return [
+                              `${Number(val).toLocaleString()} ETB`,
+                              "Revenue",
+                            ];
+                          return [val, "Bookings"];
+                        }}
+                        contentStyle={{
+                          backgroundColor: "#0f172a",
+                          color: "#ffffff",
+                          borderRadius: "12px",
+                          fontSize: "12px",
+                          border: "none",
+                        }}
+                      />
+
+                      <Legend
+                        wrapperStyle={{ fontSize: "11px", paddingTop: "8px" }}
+                        formatter={(value) =>
+                          value === "revenue" ? "Revenue (ETB)" : "Bookings"
+                        }
+                      />
+
+                      <Bar
+                        yAxisId="revenue"
+                        dataKey="revenue"
+                        fill="#b48c58"
+                        opacity={0.85}
+                        radius={[4, 4, 0, 0]}
+                        maxBarSize={40}
+                      />
+
+                      <Line
+                        yAxisId="bookings"
+                        type="monotone"
+                        dataKey="bookings"
+                        stroke="#4f46e5"
+                        strokeWidth={2}
+                        dot={{ r: 3, fill: "#4f46e5", strokeWidth: 0 }}
+                        activeDot={{ r: 5, strokeWidth: 0 }}
+                      />
+                    </ComposedChart>
+                  ) : (
+                    // Default: Line chart
+                    <LineChart
+                      data={revenueData}
+                      margin={{ top: 10, right: 10, left: 0, bottom: 0 }}
+                    >
+                      <CartesianGrid
+                        strokeDasharray="3 3"
+                        stroke="#f1f5f9"
+                        vertical={false}
+                      />
+                      <XAxis
+                        dataKey="month"
+                        stroke="#94a3b8"
+                        fontSize={11}
+                        tickLine={false}
+                        axisLine={false}
+                      />
+                      <YAxis
+                        stroke="#94a3b8"
+                        fontSize={11}
+                        tickLine={false}
+                        axisLine={false}
+                        tickFormatter={(val) => `${(val / 1000).toFixed(0)}k`}
+                      />
+                      <Tooltip
+                        formatter={(val) => [
+                          `${Number(val).toLocaleString()} ETB`,
+                          "Revenue",
+                        ]}
+                        contentStyle={{
+                          backgroundColor: "#0f172a",
+                          color: "#ffffff",
+                          borderRadius: "12px",
+                          fontSize: "12px",
+                          border: "none",
+                        }}
+                      />
+                      <Line
+                        type="monotone"
+                        dataKey="revenue"
+                        stroke="#b48c58"
+                        strokeWidth={2.5}
+                        dot={false}
+                        activeDot={{ r: 5, strokeWidth: 2 }}
+                      />
+                    </LineChart>
+                  )}
+                </ResponsiveContainer>
               </div>
             </Card>
-          </div>
 
-          {/* Bar Chart: Bookings by Status */}
-          <Card>
-            <CardHeader>
-              <CardTitle subtitle="Distribution of reservation lifecycles across the hotel">
-                Bookings by Status
-              </CardTitle>
-              <Link href="/bookings">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  rightIcon={<ChevronRight className="h-4 w-4" />}
-                >
-                  Manage All Bookings
-                </Button>
-              </Link>
-            </CardHeader>
+            {/* Room Status + Bookings by Status */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {/* Room Status Distribution (Pie Chart - 1 col) */}
+              <Card>
+                <CardHeader>
+                  <CardTitle subtitle="Current state of all hotel rooms">
+                    Room Allocation
+                  </CardTitle>
+                </CardHeader>
 
-            <div className="h-56 w-full pt-2">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart
-                  data={bookingStatusData}
-                  margin={{ top: 10, right: 10, left: -15, bottom: 0 }}
-                >
-                  <CartesianGrid
-                    strokeDasharray="3 3"
-                    stroke="#f1f5f9"
-                    vertical={false}
-                  />
-                  <XAxis
-                    dataKey="name"
-                    stroke="#94a3b8"
-                    fontSize={11}
-                    tickLine={false}
-                  />
-                  <YAxis
-                    stroke="#94a3b8"
-                    fontSize={11}
-                    tickLine={false}
-                    allowDecimals={false}
-                  />
-                  <Tooltip
-                    formatter={(val) => [val, "Count"]}
-                    contentStyle={{
-                      backgroundColor: "#0f172a",
-                      color: "#ffffff",
-                      borderRadius: "12px",
-                      fontSize: "12px",
-                    }}
-                  />
-                  <Bar dataKey="count" radius={[6, 6, 0, 0]}>
-                    {bookingStatusData.map((entry, index) => (
-                      <Cell key={`bar-${index}`} fill={entry.color} />
+                <div className="h-64 sm:h-72 w-full flex flex-col items-center justify-center">
+                  <ResponsiveContainer width="100%" height="80%">
+                    <PieChart>
+                      <Pie
+                        data={roomStatusData}
+                        cx="50%"
+                        cy="50%"
+                        innerRadius={50}
+                        outerRadius={75}
+                        paddingAngle={4}
+                        dataKey="value"
+                      >
+                        {roomStatusData.map((entry, index) => (
+                          <Cell
+                            key={`cell-${index}`}
+                            fill={entry.color || COLORS[index % COLORS.length]}
+                          />
+                        ))}
+                      </Pie>
+                      <Tooltip
+                        formatter={(val, name) => [val, name]}
+                        contentStyle={{
+                          backgroundColor: "#0f172a",
+                          color: "#ffffff",
+                          borderRadius: "12px",
+                          fontSize: "12px",
+                        }}
+                      />
+                    </PieChart>
+                  </ResponsiveContainer>
+
+                  <div className="flex flex-wrap items-center justify-center gap-3 pt-2 text-[11px] text-slate-600">
+                    {roomStatusData.map((d, i) => (
+                      <div key={i} className="flex items-center gap-1.5">
+                        <span
+                          className="w-2.5 h-2.5 rounded-full"
+                          style={{ backgroundColor: d.color }}
+                        />
+                        <span>
+                          {d.name}: <strong>{d.value}</strong>
+                        </span>
+                      </div>
                     ))}
-                  </Bar>
-                </BarChart>
-              </ResponsiveContainer>
+                  </div>
+                </div>
+              </Card>
+
+              {/* Bar Chart: Bookings by Status */}
+              <Card>
+                <CardHeader>
+                  <CardTitle subtitle="Distribution of reservation lifecycles across the hotel">
+                    Bookings by Status
+                  </CardTitle>
+                  <Link href="/bookings">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      rightIcon={<ChevronRight className="h-4 w-4" />}
+                    >
+                      Manage All Bookings
+                    </Button>
+                  </Link>
+                </CardHeader>
+
+                <div className="h-56 w-full pt-2">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart
+                      data={bookingStatusData}
+                      margin={{ top: 10, right: 10, left: -15, bottom: 0 }}
+                    >
+                      <CartesianGrid
+                        strokeDasharray="3 3"
+                        stroke="#f1f5f9"
+                        vertical={false}
+                      />
+                      <XAxis
+                        dataKey="name"
+                        stroke="#94a3b8"
+                        fontSize={11}
+                        tickLine={false}
+                      />
+                      <YAxis
+                        stroke="#94a3b8"
+                        fontSize={11}
+                        tickLine={false}
+                        allowDecimals={false}
+                      />
+                      <Tooltip
+                        formatter={(val) => [val, "Count"]}
+                        contentStyle={{
+                          backgroundColor: "#0f172a",
+                          color: "#ffffff",
+                          borderRadius: "12px",
+                          fontSize: "12px",
+                        }}
+                      />
+                      <Bar dataKey="count" radius={[6, 6, 0, 0]}>
+                        {bookingStatusData.map((entry, index) => (
+                          <Cell key={`bar-${index}`} fill={entry.color} />
+                        ))}
+                      </Bar>
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+              </Card>
             </div>
-          </Card>
+          </div>
 
           {/* ===================================================
               3. RECENT ACTIVITY & OPERATIONAL ACTIONS TABLE
@@ -646,6 +804,7 @@ export default function DashboardPage() {
                           <td className="py-3.5 px-4 font-bold text-slate-900">
                             {b.bookingNumber}
                           </td>
+
                           <td className="py-3.5 px-4">
                             <p className="font-semibold text-slate-800">
                               {b.guest?.firstName} {b.guest?.lastName}
@@ -654,6 +813,7 @@ export default function DashboardPage() {
                               {b.guest?.phone}
                             </p>
                           </td>
+
                           <td className="py-3.5 px-4">
                             <span className="font-semibold text-slate-800">
                               Room {b.room?.roomNumber || "—"}
@@ -662,16 +822,20 @@ export default function DashboardPage() {
                               {b.room?.type}
                             </span>
                           </td>
+
                           <td className="py-3.5 px-4 text-slate-600">
                             {new Date(b.checkInDate).toLocaleDateString()} →{" "}
                             {new Date(b.checkOutDate).toLocaleDateString()}
                           </td>
+
                           <td className="py-3.5 px-4 font-bold text-slate-900">
                             {b.totalPrice?.toLocaleString()} {b.currency}
                           </td>
+
                           <td className="py-3.5 px-4">
                             <Badge status={b.status} size="sm" />
                           </td>
+
                           <td className="py-3.5 px-4 text-right">
                             <div className="flex items-center justify-end gap-1.5">
                               {b.status === "pending" && (
@@ -686,6 +850,7 @@ export default function DashboardPage() {
                                   Confirm
                                 </Button>
                               )}
+
                               {b.status === "confirmed" && (
                                 <Button
                                   size="sm"
@@ -698,6 +863,7 @@ export default function DashboardPage() {
                                   Check In
                                 </Button>
                               )}
+
                               {b.status === "checked_in" && (
                                 <Button
                                   size="sm"
@@ -710,6 +876,7 @@ export default function DashboardPage() {
                                   Check Out
                                 </Button>
                               )}
+
                               <Link href={`/bookings/${b._id}`}>
                                 <Button size="sm" variant="outline">
                                   Details
@@ -740,15 +907,18 @@ export default function DashboardPage() {
                           {b.guest?.firstName} {b.guest?.lastName} (
                           {b.guest?.phone})
                         </p>
+
                         <p>
                           <strong className="text-slate-800">Room:</strong> Room{" "}
                           {b.room?.roomNumber || "—"} ({b.room?.type})
                         </p>
+
                         <p>
                           <strong className="text-slate-800">Stay:</strong>{" "}
                           {new Date(b.checkInDate).toLocaleDateString()} -{" "}
                           {new Date(b.checkOutDate).toLocaleDateString()}
                         </p>
+
                         <p>
                           <strong className="text-slate-800">Total:</strong>{" "}
                           {b.totalPrice?.toLocaleString()} {b.currency}
@@ -768,6 +938,7 @@ export default function DashboardPage() {
                             Confirm
                           </Button>
                         )}
+
                         {b.status === "confirmed" && (
                           <Button
                             size="sm"
@@ -780,6 +951,7 @@ export default function DashboardPage() {
                             Check In
                           </Button>
                         )}
+
                         {b.status === "checked_in" && (
                           <Button
                             size="sm"
@@ -792,6 +964,7 @@ export default function DashboardPage() {
                             Check Out
                           </Button>
                         )}
+
                         <Link href={`/bookings/${b._id}`} className="flex-1">
                           <Button
                             size="sm"
