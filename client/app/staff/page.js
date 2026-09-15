@@ -27,7 +27,10 @@ import {
   ShieldCheck,
   CheckCircle2,
   ArrowRight,
-  Filter
+  Filter,
+  Copy,
+  Clock,
+  Link as LinkIcon
 } from "lucide-react";
 import { scrollToFirstError } from "@/utils/scrollToFormError";
 
@@ -44,7 +47,7 @@ export default function StaffPage() {
   const [inviteRole, setInviteRole] = useState("receptionist");
   const [inviteErrors, setInviteErrors] = useState({});
   const [isInviting, setIsInviting] = useState(false);
-  const [invitedSuccessEmail, setInvitedSuccessEmail] = useState(null);
+  const [invitationResult, setInvitationResult] = useState(null);
 
   // Delete Confirm State
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
@@ -86,8 +89,9 @@ export default function StaffPage() {
         email: inviteEmail.trim(),
         role: inviteRole,
       });
-      toast.success(res.data?.message || "Staff invitation created and sent.");
-      setInvitedSuccessEmail(inviteEmail.trim());
+      const data = res.data?.data || res.data;
+      toast.success("Staff invitation created successfully.");
+      setInvitationResult(data);
       fetchStaff();
     } catch (err) {
       toast.error(getErrorMessage(err));
@@ -141,7 +145,7 @@ export default function StaffPage() {
                   setInviteEmail("");
                   setInviteRole("receptionist");
                   setInviteErrors({});
-                  setInvitedSuccessEmail(null);
+                  setInvitationResult(null);
                   setInviteModalOpen(true);
                 }}
               >
@@ -286,7 +290,7 @@ export default function StaffPage() {
           description="Send an email invitation containing an activation token"
           maxWidth="md"
         >
-          {!invitedSuccessEmail ? (
+          {!invitationResult ? (
             <form
               onSubmit={handleInviteSubmit}
               className="space-y-4"
@@ -326,9 +330,7 @@ export default function StaffPage() {
 
               <div className="p-3 rounded-xl bg-slate-50 border border-slate-100 text-xs text-slate-500">
                 <p>
-                  An activation link will be dispatched. The employee will
-                  verify their token, set their secure password, and complete
-                  their profile.
+                  A unique invitation link will be generated. You will need to copy this link and share it directly with the staff member.
                 </p>
               </div>
 
@@ -357,19 +359,50 @@ export default function StaffPage() {
                 <CheckCircle2 className="h-6 w-6" />
               </div>
               <h3 className="text-base font-bold text-slate-900">
-                Invitation Sent
+                Staff invitation created successfully.
               </h3>
               <p className="text-xs text-slate-500 max-w-sm mx-auto leading-relaxed">
-                An invitation email has been sent to{" "}
-                <strong className="text-slate-800">
-                  {invitedSuccessEmail}
-                </strong>
-                .
+                Share this invitation link with the staff member. They can use it to create their password and complete their account setup.
               </p>
+
+              <div className="mt-4 p-4 bg-slate-50 rounded-xl border border-slate-100 text-left space-y-3">
+                <div className="flex items-center gap-2 text-xs font-semibold text-slate-700">
+                  <LinkIcon className="h-4 w-4" /> Invitation Link
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="flex-1 bg-white border border-slate-200 rounded-lg px-3 py-2 text-xs text-slate-600 truncate">
+                    {invitationResult.invitationUrl}
+                  </div>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="shrink-0"
+                    onClick={async () => {
+                      try {
+                        await navigator.clipboard.writeText(invitationResult.invitationUrl);
+                        toast.success("Invitation link copied.");
+                      } catch (err) {
+                        toast.error("Failed to copy link.");
+                      }
+                    }}
+                    leftIcon={<Copy className="h-3.5 w-3.5" />}
+                  >
+                    Copy
+                  </Button>
+                </div>
+                {invitationResult.expiresAt && (
+                  <div className="flex items-center gap-1.5 text-[11px] text-amber-600 font-medium">
+                    <Clock className="h-3.5 w-3.5" />
+                    Expires on {new Date(invitationResult.expiresAt).toLocaleString()}
+                  </div>
+                )}
+              </div>
+
               <Button
                 variant="primary"
                 onClick={() => setInviteModalOpen(false)}
-                className="w-full mt-2"
+                className="w-full mt-4"
               >
                 Done
               </Button>

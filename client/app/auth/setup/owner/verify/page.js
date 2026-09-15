@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, Suspense } from "react";
+import React, { useState, useEffect, useRef, Suspense } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
@@ -13,74 +13,130 @@ function OwnerVerifyContent() {
   const searchParams = useSearchParams();
   const tokenParam = searchParams.get("token") || "";
 
-  const { verifyOwnerEmail, completeSetup, user } = useAuth();
+  const { verifyOwnerEmail, completeSetup } = useAuth();
 
-  const [step, setStep] = useState(1); // 1 = Verify Token, 2 = Complete Profile
+  const [step, setStep] = useState(1);
   const [tokenInput, setTokenInput] = useState(tokenParam);
+
   const [isVerifying, setIsVerifying] = useState(false);
   const [isSubmittingProfile, setIsSubmittingProfile] = useState(false);
+
+  const [tokenError, setTokenError] = useState("");
 
   const [profileData, setProfileData] = useState({
     firstName: "",
     lastName: "",
     phone: "",
   });
+
   const [profileErrors, setProfileErrors] = useState({});
 
-  // Auto-verify if token is provided in URL
+  // Prevent duplicate automatic verification in React Strict Mode
+  const hasAutoVerified = useRef(false);
+
+  // Automatically verify token from URL
   useEffect(() => {
-    if (tokenParam && step === 1) {
-      handleVerifyToken(tokenParam);
-    }
+    if (!tokenParam || hasAutoVerified.current) return;
+
+    hasAutoVerified.current = true;
+    handleVerifyToken(tokenParam);
   }, [tokenParam]);
 
   const handleVerifyToken = async (tokenToVerify) => {
     const rawToken = tokenToVerify || tokenInput;
-    if (!rawToken.trim()) return;
+
+    if (!rawToken.trim()) {
+      const error = {
+        token: "Verification token is required.",
+      };
+
+      setTokenError(error.token);
+      scrollToFirstError(error);
+      return;
+    }
 
     try {
       setIsVerifying(true);
+      setTokenError("");
+
       await verifyOwnerEmail(rawToken.trim());
+
       setStep(2);
     } catch (err) {
-      scrollToFirstError(err);
+      const message =
+        err?.response?.data?.message ||
+        err?.message ||
+        "Invalid or expired verification token.";
+
+      const errors = {
+        token: message,
+      };
+
+      setTokenError(message);
+      scrollToFirstError(errors);
     } finally {
       setIsVerifying(false);
     }
   };
 
   const validateProfile = () => {
-    const errs = {};
-    if (!profileData.firstName.trim())
-      errs.firstName = "First name is required";
-    if (!profileData.lastName.trim()) errs.lastName = "Last name is required";
-    if (!profileData.phone.trim()) {
-      errs.phone = "Phone number is required";
-    } else if (profileData.phone.trim().length < 7) {
-      errs.phone = "Please enter a valid phone number";
+    const errors = {};
+
+    if (!profileData.firstName.trim()) {
+      errors.firstName = "First name is required";
     }
 
-    setProfileErrors(errs);
-    if (Object.keys(errs).length > 0) {
-      scrollToFirstError(errs);
+    if (!profileData.lastName.trim()) {
+      errors.lastName = "Last name is required";
+    }
+
+    if (!profileData.phone.trim()) {
+      errors.phone = "Phone number is required";
+    } else if (profileData.phone.trim().length < 7) {
+      errors.phone = "Please enter a valid phone number";
+    }
+
+    setProfileErrors(errors);
+
+    if (Object.keys(errors).length > 0) {
+      scrollToFirstError(errors);
       return false;
     }
+
     return true;
   };
 
   const handleCompleteProfile = async (e) => {
     e.preventDefault();
+
     if (!validateProfile()) return;
 
     try {
       setIsSubmittingProfile(true);
+
       await completeSetup({
         firstName: profileData.firstName.trim(),
         lastName: profileData.lastName.trim(),
         phone: profileData.phone.trim(),
       });
     } catch (err) {
-      scrollToFirstError(err);
+      const errors = err?.response?.data?.errors || err?.errors || {};
+
+      const message =
+        err?.response?.data?.message ||
+        err?.message ||
+        "Unable to complete setup.";
+
+      // If backend returns field-level errors, use them.
+      if (Object.keys(errors).length > 0) {
+        setProfileErrors(errors);
+        scrollToFirstError(errors);
+      } else {
+        // Otherwise preserve your existing API error handling.
+        scrollToFirstError({
+          firstName: message,
+        });
+      }
     } finally {
       setIsSubmittingProfile(false);
     }
@@ -93,18 +149,23 @@ function OwnerVerifyContent() {
         <div className="mb-8">
           <div className="flex items-center justify-between text-xs font-semibold text-slate-400 mb-2">
             <span className="text-[#8c6838]">1. Create Owner</span>
-            <span className={step >= 1 ? "text-[#8c6838]" : ""}>
-              2. Email Verification
-            </span>
-            <span className={step >= 2 ? "text-[#8c6838]" : ""}>
+
+            <span className="text-[#8c6838]">2. Email Verification</span>
+
+            <span className={step >= 2 ? "text-[#8c6838]" : "text-slate-400"}>
               3. Complete Profile
             </span>
           </div>
+
           <div className="grid grid-cols-3 gap-2">
             <div className="h-1.5 rounded-full bg-[#b48c58]" />
+
             <div className="h-1.5 rounded-full bg-[#b48c58]" />
+
             <div
-              className={`h-1.5 rounded-full ${step >= 2 ? "bg-[#b48c58]" : "bg-slate-200"}`}
+              className={`h-1.5 rounded-full ${
+                step >= 2 ? "bg-[#b48c58]" : "bg-slate-200"
+              }`}
             />
           </div>
         </div>
@@ -113,34 +174,47 @@ function OwnerVerifyContent() {
         <div className="bg-white rounded-2xl border border-slate-200/80 shadow-card p-6 sm:p-8">
           {step === 1 ? (
             <div>
+              {/* Header */}
               <div className="flex items-center gap-3 mb-6">
                 <div className="w-10 h-10 rounded-xl bg-amber-50 text-[#8c6838] flex items-center justify-center">
                   <KeyRound className="h-5 w-5" />
                 </div>
+
                 <div>
                   <h1 className="text-xl font-bold tracking-tight text-slate-900">
                     Verify Owner Email
                   </h1>
+
                   <p className="text-xs text-slate-500">
                     Enter the verification token from your confirmation email
                   </p>
                 </div>
               </div>
 
+              {/* Token Form */}
               <form
                 onSubmit={(e) => {
                   e.preventDefault();
                   handleVerifyToken(tokenInput);
                 }}
                 className="space-y-4"
+                noValidate
               >
                 <Input
                   label="Verification Token"
                   id="token"
+                  name="token"
                   placeholder="Paste token here..."
                   required
                   value={tokenInput}
-                  onChange={(e) => setTokenInput(e.target.value)}
+                  onChange={(e) => {
+                    setTokenInput(e.target.value);
+
+                    if (tokenError) {
+                      setTokenError("");
+                    }
+                  }}
+                  error={tokenError}
                   leftIcon={<KeyRound className="h-4 w-4" />}
                   helperText="The token was generated when your owner account was created."
                 />
@@ -159,20 +233,24 @@ function OwnerVerifyContent() {
             </div>
           ) : (
             <div>
+              {/* Header */}
               <div className="flex items-center gap-3 mb-6">
                 <div className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center">
                   <CheckCircle2 className="h-5 w-5" />
                 </div>
+
                 <div>
                   <h1 className="text-xl font-bold tracking-tight text-slate-900">
                     Complete Owner Profile
                   </h1>
+
                   <p className="text-xs text-slate-500">
                     Enter your name and contact details to finalize setup
                   </p>
                 </div>
               </div>
 
+              {/* Profile Form */}
               <form
                 onSubmit={handleCompleteProfile}
                 className="space-y-4"
@@ -191,8 +269,13 @@ function OwnerVerifyContent() {
                         ...profileData,
                         firstName: e.target.value,
                       });
-                      if (profileErrors.firstName)
-                        setProfileErrors({ ...profileErrors, firstName: null });
+
+                      if (profileErrors.firstName) {
+                        setProfileErrors({
+                          ...profileErrors,
+                          firstName: null,
+                        });
+                      }
                     }}
                     error={profileErrors.firstName}
                     leftIcon={<User className="h-4 w-4" />}
@@ -210,8 +293,13 @@ function OwnerVerifyContent() {
                         ...profileData,
                         lastName: e.target.value,
                       });
-                      if (profileErrors.lastName)
-                        setProfileErrors({ ...profileErrors, lastName: null });
+
+                      if (profileErrors.lastName) {
+                        setProfileErrors({
+                          ...profileErrors,
+                          lastName: null,
+                        });
+                      }
                     }}
                     error={profileErrors.lastName}
                     leftIcon={<User className="h-4 w-4" />}
@@ -227,9 +315,17 @@ function OwnerVerifyContent() {
                   required
                   value={profileData.phone}
                   onChange={(e) => {
-                    setProfileData({ ...profileData, phone: e.target.value });
-                    if (profileErrors.phone)
-                      setProfileErrors({ ...profileErrors, phone: null });
+                    setProfileData({
+                      ...profileData,
+                      phone: e.target.value,
+                    });
+
+                    if (profileErrors.phone) {
+                      setProfileErrors({
+                        ...profileErrors,
+                        phone: null,
+                      });
+                    }
                   }}
                   error={profileErrors.phone}
                   leftIcon={<Phone className="h-4 w-4" />}
@@ -250,6 +346,7 @@ function OwnerVerifyContent() {
             </div>
           )}
 
+          {/* Footer */}
           <div className="mt-6 pt-5 border-t border-slate-100 text-center text-xs text-slate-500">
             Need to start over?{" "}
             <Link

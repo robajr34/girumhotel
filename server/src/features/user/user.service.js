@@ -7,6 +7,13 @@ import userRepo from "./user.repository.js";
 export const getAllUsersService = async (query) => {
   const users = await userRepo.findAll(query, null);
 
+  if (users && users.users) {
+    users.users = users.users.map((user) => {
+      delete user.invitationToken;
+      return user;
+    });
+  }
+
   return users;
 };
 
@@ -22,7 +29,10 @@ export const getUserService = async (userId) => {
     throw new AppError("User not found.", 404, "USER_NOT_FOUND");
   }
 
-  return user;
+  const userObj = user.toObject ? user.toObject() : user;
+  delete userObj.invitationToken;
+
+  return userObj;
 };
 
 export const blockUserService = async (userId) => {

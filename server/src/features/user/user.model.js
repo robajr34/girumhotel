@@ -45,6 +45,10 @@ const userSchema = new mongoose.Schema(
       type: Date,
       default: null,
     },
+    activeInvitationUrl: {
+      type: String,
+      default: null,
+    },
   },
   { timestamps: true },
 );

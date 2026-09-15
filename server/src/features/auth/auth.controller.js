@@ -112,3 +112,8 @@ export const verifyStaffEmail = async (req, res) => {
     accessToken,
   });
 };
+
+export const logout = async (req, res) => {
+  res.clearCookie("refreshToken");
+  return sendResponse(res, 200, "Logged out successfully.", null);
+};

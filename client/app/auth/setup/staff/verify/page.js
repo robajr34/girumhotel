@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useSearchParams, useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import Input from "@/components/ui/Input";
+import PasswordInput from "@/components/ui/PasswordInput";
 import Button from "@/components/ui/Button";
 import { KeyRound, Lock, Eye, EyeOff, User, Phone, CheckCircle2, ArrowRight } from "lucide-react";
 import Image from "next/image";
@@ -22,7 +23,6 @@ function StaffVerifyContent() {
   const [tokenInput, setTokenInput] = useState(tokenParam);
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
-  const [showPassword, setShowPassword] = useState(false);
   const [errors, setErrors] = useState({});
   const [isVerifying, setIsVerifying] = useState(false);
   const [isSubmittingProfile, setIsSubmittingProfile] = useState(false);
@@ -73,7 +73,18 @@ function StaffVerifyContent() {
       });
       setStep(2);
     } catch (err) {
-      scrollToFirstError(err);
+      const msg = err.response?.data?.message || err.message || "";
+      if (
+        msg.toLowerCase().includes("invalid") ||
+        msg.toLowerCase().includes("expire") ||
+        msg.toLowerCase().includes("token")
+      ) {
+        const tokenErr = { token: "This staff invitation is invalid or has expired. Please ask the owner or manager to create a new invitation." };
+        setErrors(tokenErr);
+        scrollToFirstError(tokenErr);
+      } else {
+        scrollToFirstError(err);
+      }
     } finally {
       setIsVerifying(false);
     }
@@ -193,11 +204,10 @@ function StaffVerifyContent() {
                   leftIcon={<KeyRound className="h-4 w-4" />}
                 />
 
-                <Input
+                <PasswordInput
                   label="Create Password"
                   id="password"
                   name="password"
-                  type={showPassword ? "text" : "password"}
                   placeholder="At least 8 characters"
                   required
                   value={password}
@@ -208,29 +218,13 @@ function StaffVerifyContent() {
                   }}
                   error={errors.password}
                   leftIcon={<Lock className="h-4 w-4" />}
-                  rightIcon={
-                    <button
-                      type="button"
-                      onClick={() => setShowPassword(!showPassword)}
-                      className="text-slate-400 hover:text-slate-600 cursor-pointer p-1"
-                      aria-label={
-                        showPassword ? "Hide password" : "Show password"
-                      }
-                    >
-                      {showPassword ? (
-                        <EyeOff className="h-4 w-4" />
-                      ) : (
-                        <Eye className="h-4 w-4" />
-                      )}
-                    </button>
-                  }
+                  showStrength={true}
                 />
 
-                <Input
+                <PasswordInput
                   label="Confirm Password"
                   id="confirmPassword"
                   name="confirmPassword"
-                  type={showPassword ? "text" : "password"}
                   placeholder="Re-enter password"
                   required
                   value={confirmPassword}
@@ -241,6 +235,7 @@ function StaffVerifyContent() {
                   }}
                   error={errors.confirmPassword}
                   leftIcon={<Lock className="h-4 w-4" />}
+                  matchPassword={password}
                 />
 
                 <Button

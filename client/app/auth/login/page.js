@@ -4,6 +4,7 @@ import React, { useState } from "react";
 import Link from "next/link";
 import { useAuth } from "@/context/AuthContext";
 import Input from "@/components/ui/Input";
+import PasswordInput from "@/components/ui/PasswordInput";
 import Button from "@/components/ui/Button";
 import { Mail, Lock, Eye, EyeOff, Hotel, ArrowRight } from "lucide-react";
 import { HOTEL } from "@/constants/hotel";
@@ -16,7 +17,6 @@ export default function LoginPage() {
     email: "",
     password: "",
   });
-  const [showPassword, setShowPassword] = useState(false);
   const [errors, setErrors] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -109,11 +109,10 @@ export default function LoginPage() {
             />
 
             <div>
-              <Input
+              <PasswordInput
                 label="Password"
                 id="password"
                 name="password"
-                type={showPassword ? "text" : "password"}
                 autoComplete="current-password"
                 placeholder="••••••••"
                 required
@@ -124,22 +123,7 @@ export default function LoginPage() {
                 }}
                 error={errors.password}
                 leftIcon={<Lock className="h-4 w-4" />}
-                rightIcon={
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="text-slate-400 hover:text-slate-600 cursor-pointer p-1"
-                    aria-label={
-                      showPassword ? "Hide password" : "Show password"
-                    }
-                  >
-                    {showPassword ? (
-                      <EyeOff className="h-4 w-4" />
-                    ) : (
-                      <Eye className="h-4 w-4" />
-                    )}
-                  </button>
-                }
+                showStrength={false}
               />
             </div>
 

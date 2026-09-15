@@ -41,6 +41,13 @@ const authApi = {
   async completeSetup(payload) {
     return api.post("/auth/setup/complete-setup", payload);
   },
+
+  // =========================
+  // Logout
+  // =========================
+  async logout() {
+    return api.post("/auth/logout");
+  },
 };
 
 export default authApi;

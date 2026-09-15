@@ -5,6 +5,7 @@ import Link from "next/link";
 import { HOTEL } from "@/constants/hotel";
 import { useAuth } from "@/context/AuthContext";
 import Input from "@/components/ui/Input";
+import PasswordInput from "@/components/ui/PasswordInput";
 import Button from "@/components/ui/Button";
 import {
   Mail,
@@ -25,7 +26,6 @@ export default function SignupPage() {
     password: "",
     confirmPassword: "",
   });
-  const [showPassword, setShowPassword] = useState(false);
   const [errors, setErrors] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -124,11 +124,10 @@ export default function SignupPage() {
             />
 
             <div>
-              <Input
+              <PasswordInput
                 label="Password"
                 id="password"
                 name="password"
-                type={showPassword ? "text" : "password"}
                 autoComplete="new-password"
                 placeholder="At least 8 characters"
                 required
@@ -139,31 +138,15 @@ export default function SignupPage() {
                 }}
                 error={errors.password}
                 leftIcon={<Lock className="h-4 w-4" />}
-                rightIcon={
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="text-slate-400 hover:text-slate-600 cursor-pointer p-1"
-                    aria-label={
-                      showPassword ? "Hide password" : "Show password"
-                    }
-                  >
-                    {showPassword ? (
-                      <EyeOff className="h-4 w-4" />
-                    ) : (
-                      <Eye className="h-4 w-4" />
-                    )}
-                  </button>
-                }
+                showStrength={true}
               />
             </div>
 
             <div>
-              <Input
+              <PasswordInput
                 label="Confirm Password"
                 id="confirmPassword"
                 name="confirmPassword"
-                type={showPassword ? "text" : "password"}
                 autoComplete="new-password"
                 placeholder="Re-enter your password"
                 required
@@ -175,21 +158,8 @@ export default function SignupPage() {
                 }}
                 error={errors.confirmPassword}
                 leftIcon={<Lock className="h-4 w-4" />}
+                matchPassword={formData.password}
               />
-            </div>
-
-            {/* Password checklist */}
-            <div className="bg-slate-50 p-3 rounded-xl border border-slate-100 text-[11px] text-slate-500 space-y-1">
-              <div className="flex items-center gap-1.5">
-                <CheckCircle2
-                  className={`h-3.5 w-3.5 ${
-                    formData.password.length >= 8
-                      ? "text-emerald-500"
-                      : "text-slate-300"
-                  }`}
-                />
-                <span>Minimum 8 characters</span>
-              </div>
             </div>
 
             <Button

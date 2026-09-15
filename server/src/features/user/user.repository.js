@@ -37,35 +37,64 @@ const userRepo = {
     });
   },
 
-  findById(userId) {
-    return User.findById(userId);
-  },
-  findByEmail(email) {
-    return User.findOne({ email });
-  },
-  findByEmailWithPassword(email) {
-    return User.findOne({ email }).select("+password");
+  findById(userId, options = {}) {
+    const { session } = options;
+
+    return User.findById(userId).session(session);
   },
 
-  create(data) {
-    return User.create(data);
+  findByEmail(email, options = {}) {
+    const { session } = options;
+
+    return User.findOne({ email }).session(session);
   },
-  findByInvitationToken(token) {
-    return User.findOne({ invitationToken: token });
+
+  findByEmailWithPassword(email, options = {}) {
+    const { session } = options;
+
+    return User.findOne({ email }).select("+password").session(session);
   },
-  updateById(userId, data) {
+
+  async create(data, options = {}) {
+    const { session } = options;
+
+    const [user] = await User.create([data], {
+      session,
+    });
+
+    return user;
+  },
+
+  findByInvitationToken(token, options = {}) {
+    const { session } = options;
+
+    return User.findOne({
+      invitationToken: token,
+    }).session(session);
+  },
+
+  updateById(userId, data, options = {}) {
+    const { session } = options;
+
     return User.findByIdAndUpdate(userId, data, {
       returnDocument: "after",
       runValidators: true,
+      session,
     });
   },
 
-  deleteById(userId) {
-    return User.findByIdAndDelete(userId).lean();
+  deleteById(userId, options = {}) {
+    const { session } = options;
+
+    return User.findByIdAndDelete(userId, {
+      session,
+    }).lean();
   },
 
-  findByRole(role) {
-    return User.findOne({ role });
+  findByRole(role, options = {}) {
+    const { session } = options;
+
+    return User.findOne({ role }).session(session);
   },
 };
 

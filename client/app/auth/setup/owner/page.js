@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useAuth } from "@/context/AuthContext";
 import { useRouter } from "next/navigation";
 import Input from "@/components/ui/Input";
+import PasswordInput from "@/components/ui/PasswordInput";
 import Button from "@/components/ui/Button";
 import { Mail, Lock, Eye, EyeOff, ShieldCheck, ArrowRight, CheckCircle2 } from "lucide-react";
 import { scrollToFirstError } from "@/utils/scrollToFormError";
@@ -17,7 +18,6 @@ export default function OwnerSetupPage() {
     password: "",
     confirmPassword: "",
   });
-  const [showPassword, setShowPassword] = useState(false);
   const [errors, setErrors] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [createdEmail, setCreatedEmail] = useState(null);
@@ -120,11 +120,10 @@ export default function OwnerSetupPage() {
                 />
 
                 <div>
-                  <Input
+                  <PasswordInput
                     label="Master Password"
                     id="password"
                     name="password"
-                    type={showPassword ? "text" : "password"}
                     autoComplete="new-password"
                     placeholder="At least 8 characters"
                     required
@@ -135,29 +134,15 @@ export default function OwnerSetupPage() {
                     }}
                     error={errors.password}
                     leftIcon={<Lock className="h-4 w-4" />}
-                    rightIcon={
-                      <button
-                        type="button"
-                        onClick={() => setShowPassword(!showPassword)}
-                        className="text-slate-400 hover:text-slate-600 cursor-pointer p-1"
-                        aria-label={showPassword ? "Hide password" : "Show password"}
-                      >
-                        {showPassword ? (
-                          <EyeOff className="h-4 w-4" />
-                        ) : (
-                          <Eye className="h-4 w-4" />
-                        )}
-                      </button>
-                    }
+                    showStrength={true}
                   />
                 </div>
 
                 <div>
-                  <Input
+                  <PasswordInput
                     label="Confirm Master Password"
                     id="confirmPassword"
                     name="confirmPassword"
-                    type={showPassword ? "text" : "password"}
                     autoComplete="new-password"
                     placeholder="Re-enter master password"
                     required
@@ -168,6 +153,7 @@ export default function OwnerSetupPage() {
                     }}
                     error={errors.confirmPassword}
                     leftIcon={<Lock className="h-4 w-4" />}
+                    matchPassword={formData.password}
                   />
                 </div>
 

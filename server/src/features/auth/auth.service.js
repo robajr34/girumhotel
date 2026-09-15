@@ -13,6 +13,11 @@ import env from "../../configs/env.js";
 import sendEmail from "../../utils/email.js";
 import refTokenRepo from "../token/refreshToken/refreshToken.repository.js";
 import staffRepo from "../staff/staff.repository.js";
+import mongoose from "mongoose";
+
+/* ============================================================
+   GUEST LOGIN
+   ============================================================ */
 
 export const guestLoginService = async ({ email, password }) => {
   const userExist = await userRepo.findByEmailWithPassword(email);
@@ -66,6 +71,7 @@ export const guestLoginService = async ({ email, password }) => {
   });
 
   await userExist.save();
+
   logger.info("Guest login successful", {
     userId: user._id,
     role: user.role,
@@ -77,6 +83,10 @@ export const guestLoginService = async ({ email, password }) => {
     refreshToken,
   };
 };
+
+/* ============================================================
+   GUEST SIGNUP
+   ============================================================ */
 
 export const guestSignupService = async ({ email, password }) => {
   const userExist = await userRepo.findByEmail(email);
@@ -128,6 +138,10 @@ export const guestSignupService = async ({ email, password }) => {
   };
 };
 
+/* ============================================================
+   REFRESH TOKEN
+   ============================================================ */
+
 export const refreshTokenService = async (refToken) => {
   if (!refToken) {
     logger.warn("Refresh token request failed", {
@@ -149,7 +163,12 @@ export const refreshTokenService = async (refToken) => {
     throw new AppError("Invalid or expired token.", 401, "INVALID_TOKEN");
   }
 
-  // Detect refresh-token reuse
+  /*
+   * Detect refresh-token reuse.
+   *
+   * No transaction is needed here because we're revoking
+   * all tokens as a security response.
+   */
   if (token.isRevoked) {
     logger.warn("Refresh token reuse detected", {
       userId: token.user,
@@ -161,7 +180,7 @@ export const refreshTokenService = async (refToken) => {
     throw new AppError("Token reuse detected.", 401, "TOKEN_REUSE_DETECTION");
   }
 
-  // Check database expiration
+  /* Check database expiration */
   if (token.expiresAt < new Date()) {
     logger.warn("Expired refresh token used", {
       userId: token.user,
@@ -171,7 +190,7 @@ export const refreshTokenService = async (refToken) => {
     throw new AppError("Invalid or expired token.", 401, "EXPIRED_TOKEN");
   }
 
-  // Verify JWT
+  /* Verify JWT */
   let decoded;
 
   try {
@@ -184,7 +203,7 @@ export const refreshTokenService = async (refToken) => {
     throw new AppError("Invalid or expired token.", 401, "INVALID_TOKEN");
   }
 
-  // Make sure JWT belongs to DB token
+  /* Make sure JWT belongs to DB token */
   if (decoded.userId !== token.user.toString()) {
     logger.warn("Refresh token identity mismatch", {
       tokenId: token._id,
@@ -194,7 +213,12 @@ export const refreshTokenService = async (refToken) => {
     throw new AppError("Invalid refresh token.", 401, "INVALID_TOKEN");
   }
 
-  // Find user
+  /*
+   * Find user.
+   *
+   * This happens before the transaction because it is only
+   * being used for validation.
+   */
   const user = await userRepo.findById(token.user);
 
   if (!user) {
@@ -210,7 +234,7 @@ export const refreshTokenService = async (refToken) => {
     );
   }
 
-  // Check account status
+  /* Check account status */
   if (user.isBlackListed) {
     logger.warn("Blacklisted user attempted token refresh", {
       userId: user._id,
@@ -220,44 +244,78 @@ export const refreshTokenService = async (refToken) => {
     throw new AppError("User is currently banned.", 401, "USER_IS_BANNED");
   }
 
-  // Revoke current refresh token
-  token.isRevoked = true;
-  await token.save();
+  /*
+   * Token rotation must be atomic.
+   *
+   * 1. Revoke old refresh token
+   * 2. Create new refresh token
+   */
 
-  // Generate new token pair
-  const { accessToken, refreshToken } = generateBothTokens({
-    userId: user._id,
-    role: user.role,
-    accountType: user.role === "guest" ? "guest" : "staff",
-  });
+  const session = await mongoose.startSession();
 
-  // Hash new refresh token
-  const hashedRefreshToken = hashToken(refreshToken);
+  try {
+    session.startTransaction();
 
-  await refTokenRepo.create({
-    token: hashedRefreshToken,
-    user: user._id,
-    expiresAt: new Date(Date.now() + 1000 * 60 * 60 * 24 * 30),
-    isRevoked: false,
-  });
+    token.isRevoked = true;
+    await token.save({ session });
 
-  logger.info("Refresh token rotated successfully", {
-    userId: user._id,
-    role: user.role,
-    oldTokenId: token._id,
-  });
+    const { accessToken, refreshToken } = generateBothTokens({
+      userId: user._id,
+      role: user.role,
+      accountType: user.role === "guest" ? "guest" : "staff",
+    });
 
-  return {
-    accessToken,
-    refreshToken,
-  };
+    const hashedRefreshToken = hashToken(refreshToken);
+
+    await refTokenRepo.create(
+      {
+        token: hashedRefreshToken,
+        user: user._id,
+        expiresAt: new Date(Date.now() + 1000 * 60 * 60 * 24 * 30),
+        isRevoked: false,
+      },
+      { session },
+    );
+
+    await session.commitTransaction();
+
+    logger.info("Refresh token rotated successfully", {
+      userId: user._id,
+      role: user.role,
+      oldTokenId: token._id,
+    });
+
+    return {
+      accessToken,
+      refreshToken,
+    };
+  } catch (error) {
+    if (session.inTransaction()) {
+      await session.abortTransaction();
+    }
+
+    logger.error("Refresh token rotation failed", {
+      userId: user._id,
+      tokenId: token._id,
+      error: error.message,
+    });
+
+    throw error;
+  } finally {
+    await session.endSession();
+  }
 };
+
+/* ============================================================
+   GET ME
+   ============================================================ */
 
 export const getMeService = async (userId) => {
   const user = await userRepo.findById(userId);
+
   if (!user) {
     logger.error(`User with ID-${userId} not found.`, {
-      userId: userId,
+      userId,
     });
 
     throw new AppError("User not found.", 404, "USER_NOT_FOUND");
@@ -266,482 +324,170 @@ export const getMeService = async (userId) => {
   return user;
 };
 
+/* ============================================================
+   OWNER SETUP
+   ============================================================ */
+
 export const setupOwnerService = async ({ email, password }) => {
-  const ownerExist = await userRepo.findByEmail(email);
-
-  const adminExist = await userRepo.findByRole("owner");
-
-  if (adminExist) {
-    logger.warn("Owner already exist.", {
-      ownerId: adminExist._id,
-      requestedEmail: email,
-    });
-
-    throw new AppError("Owner already exist.", 409, "USER_EXIST");
-  }
-
-  if (ownerExist) {
-    logger.warn("Owner setup failed", {
-      email,
-      reason: "Email already exists",
-    });
-
-    throw new AppError("Email already exist.", 409, "EMAIL_EXIST");
-  }
-
-  const hashedPassword = await hashPassword(password);
-
-  const owner = await userRepo.create({
-    email,
-    password: hashedPassword,
-    role: "owner",
-    requireSetup: true,
-  });
-
-  const rawToken = generateToken();
-  const tokenHash = hashToken(rawToken);
-
-  await vTokenRepo.create({
-    user: owner._id,
-    tokenHash,
-    expiresAt: new Date(Date.now() + 1000 * 60 * 60),
-  });
-
-  const verificationUrl = `${env.frontendUrl}/setup/owner/verify?token=${rawToken}`;
-  logger.info("Token", {
-    rawToken: rawToken,
-  });
+  const session = await mongoose.startSession();
 
   try {
+    session.startTransaction();
+
+    const adminExist = await userRepo.findByRole("owner", { session });
+
+    if (adminExist) {
+      if (!adminExist.isVerified) {
+        throw new AppError(
+          "Owner registration is already pending email verification.",
+          409,
+          "OWNER_VERIFICATION_PENDING",
+        );
+      }
+
+      throw new AppError("Owner already exist.", 409, "USER_EXIST");
+    }
+
+    const ownerExist = await userRepo.findByEmail(email, { session });
+
+    if (ownerExist) {
+      throw new AppError("Email already exist.", 409, "EMAIL_EXIST");
+    }
+
+    const hashedPassword = await hashPassword(password);
+
+    const owner = await userRepo.create(
+      {
+        email,
+        password: hashedPassword,
+        role: "owner",
+        requireSetup: true,
+        isVerified: false,
+      },
+      { session },
+    );
+
+    const rawToken = generateToken();
+    const tokenHash = hashToken(rawToken);
+
+    const verificationToken = await vTokenRepo.create(
+      {
+        user: owner._id,
+        tokenHash,
+        expiresAt: new Date(Date.now() + 60 * 60 * 1000),
+      },
+      { session },
+    );
+
+    const verificationUrl = `${env.frontendUrl}/setup/owner/verify?token=${rawToken}`;
+
     await sendEmail({
       to: owner.email,
       subject: "Verify your owner account — Girum Hotel",
-
       html: `
-    <!DOCTYPE html>
-    <html lang="en">
-      <head>
-        <meta charset="UTF-8" />
-        <meta
-          name="viewport"
-          content="width=device-width, initial-scale=1.0"
-        />
+        <!DOCTYPE html>
+        <html>
+          <body style="
+            margin: 0;
+            padding: 0;
+            background: #f8fafc;
+            font-family: Arial, sans-serif;
+          ">
+            <div style="
+              max-width: 600px;
+              margin: 40px auto;
+              background: #ffffff;
+              padding: 40px;
+              border-radius: 12px;
+              border: 1px solid #e2e8f0;
+            ">
+              <h1 style="
+                margin: 0 0 20px;
+                color: #0f172a;
+                font-size: 24px;
+              ">
+                Verify your owner account
+              </h1>
 
-        <title>Verify your Girum Hotel account</title>
-      </head>
-
-      <body
-        style="
-          margin: 0;
-          padding: 0;
-          background-color: #f5f5f4;
-          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI',
-            Roboto, Helvetica, Arial, sans-serif;
-          color: #1c1917;
-        "
-      >
-
-        <!-- Preheader -->
-        <div
-          style="
-            display: none;
-            max-height: 0;
-            overflow: hidden;
-            opacity: 0;
-          "
-        >
-          Verify your owner account and access your Girum Hotel dashboard.
-        </div>
-
-        <!-- Outer wrapper -->
-        <table
-          role="presentation"
-          width="100%"
-          cellpadding="0"
-          cellspacing="0"
-          border="0"
-          style="background-color: #f5f5f4;"
-        >
-          <tr>
-            <td align="center" style="padding: 48px 16px;">
-
-              <!-- Email card -->
-              <table
-                role="presentation"
-                width="100%"
-                cellpadding="0"
-                cellspacing="0"
-                border="0"
-                style="
-                  max-width: 560px;
-                  background-color: #ffffff;
-                  border: 1px solid #e7e5e4;
-                  border-radius: 18px;
-                  overflow: hidden;
-                "
-              >
-
-                <!-- Brand -->
-                <tr>
-                  <td
-                    style="
-                      padding: 30px 40px 24px;
-                      border-bottom: 1px solid #f0efed;
-                    "
-                  >
-                    <table
-                      role="presentation"
-                      width="100%"
-                      cellpadding="0"
-                      cellspacing="0"
-                      border="0"
-                    >
-                      <tr>
-                        <td>
-
-                          <div
-                            style="
-                              font-size: 11px;
-                              font-weight: 700;
-                              letter-spacing: 1.8px;
-                              text-transform: uppercase;
-                              color: #a16207;
-                              margin-bottom: 5px;
-                            "
-                          >
-                            GIRUM HOTEL
-                          </div>
-
-                          <div
-                            style="
-                              font-size: 13px;
-                              color: #78716c;
-                            "
-                          >
-                            Hotel Management System
-                          </div>
-
-                        </td>
-
-                        <td
-                          align="right"
-                          style="
-                            font-size: 22px;
-                          "
-                        >
-                          🏨
-                        </td>
-                      </tr>
-                    </table>
-                  </td>
-                </tr>
-
-                <!-- Main content -->
-                <tr>
-                  <td
-                    style="
-                      padding: 44px 40px 40px;
-                    "
-                  >
-
-                    <!-- Small icon -->
-                    <div
-                      style="
-                        width: 48px;
-                        height: 48px;
-                        line-height: 48px;
-                        text-align: center;
-                        background-color: #fffbeb;
-                        border: 1px solid #fde68a;
-                        border-radius: 14px;
-                        font-size: 21px;
-                        margin-bottom: 26px;
-                      "
-                    >
-                      ✉
-                    </div>
-
-                    <!-- Heading -->
-                    <h1
-                      style="
-                        margin: 0 0 12px;
-                        font-size: 30px;
-                        line-height: 1.2;
-                        font-weight: 700;
-                        letter-spacing: -0.7px;
-                        color: #1c1917;
-                      "
-                    >
-                      Welcome to Girum Hotel.
-                    </h1>
-
-                    <p
-                      style="
-                        margin: 0 0 28px;
-                        font-size: 16px;
-                        line-height: 1.7;
-                        color: #57534e;
-                      "
-                    >
-                      Your owner account is almost ready.
-                      Verify your email address to securely activate
-                      your account and access your hotel dashboard.
-                    </p>
-
-                    <!-- CTA -->
-                    <table
-                      role="presentation"
-                      cellpadding="0"
-                      cellspacing="0"
-                      border="0"
-                      width="100%"
-                    >
-                      <tr>
-                        <td>
-
-                          <a
-                            href="${verificationUrl}"
-                            target="_blank"
-                            style="
-                              display: block;
-                              width: 100%;
-                              box-sizing: border-box;
-                              background-color: #a16207;
-                              color: #ffffff;
-                              text-decoration: none;
-                              text-align: center;
-                              padding: 15px 20px;
-                              border-radius: 10px;
-                              font-size: 15px;
-                              font-weight: 700;
-                              line-height: 1.4;
-                            "
-                          >
-                            Verify email address
-                            &nbsp;&nbsp;→
-                          </a>
-
-                        </td>
-                      </tr>
-                    </table>
-
-                    <div
-                      style="
-                        margin-top: 22px;
-                        padding: 14px 16px;
-                        background-color: #fafaf9;
-                        border: 1px solid #e7e5e4;
-                        border-radius: 10px;
-                      "
-                    >
-                      <table
-                        role="presentation"
-                        width="100%"
-                        cellpadding="0"
-                        cellspacing="0"
-                        border="0"
-                      >
-                        <tr>
-                          <td
-                            style="
-                              font-size: 13px;
-                              color: #57534e;
-                            "
-                          >
-                            <strong style="color: #292524;">
-                              Link expires
-                            </strong>
-                          </td>
-
-                          <td
-                            align="right"
-                            style="
-                              font-size: 13px;
-                              font-weight: 700;
-                              color: #a16207;
-                            "
-                          >
-                            In 1 hour
-                          </td>
-                        </tr>
-                      </table>
-                    </div>
-
-                    <div
-                      style="
-                        height: 1px;
-                        background-color: #e7e5e4;
-                        margin: 32px 0;
-                      "
-                    ></div>
-
-                    <p
-                      style="
-                        margin: 0 0 8px;
-                        font-size: 12px;
-                        font-weight: 700;
-                        color: #44403c;
-                      "
-                    >
-                      Having trouble with the button?
-                    </p>
-
-                    <p
-                      style="
-                        margin: 0;
-                        font-size: 12px;
-                        line-height: 1.6;
-                        color: #78716c;
-                        word-break: break-all;
-                      "
-                    >
-                      Copy and paste this link into your browser:
-                    </p>
-
-                    <div
-                      style="
-                        margin-top: 10px;
-                        padding: 12px;
-                        background-color: #fafaf9;
-                        border: 1px solid #e7e5e4;
-                        border-radius: 8px;
-                        font-family: monospace;
-                        font-size: 11px;
-                        line-height: 1.5;
-                        color: #57534e;
-                        word-break: break-all;
-                      "
-                    >
-                      ${verificationUrl}
-                    </div>
-                    <div
-                      style="
-                        margin-top: 24px;
-                        padding: 15px 16px;
-                        background-color: #f0fdf4;
-                        border: 1px solid #dcfce7;
-                        border-radius: 10px;
-                      "
-                    >
-                      <table
-                        role="presentation"
-                        cellpadding="0"
-                        cellspacing="0"
-                        border="0"
-                      >
-                        <tr>
-                          <td
-                            valign="top"
-                            style="
-                              font-size: 16px;
-                              padding-right: 10px;
-                            "
-                          >
-                            🔒
-                          </td>
-
-                          <td
-                            style="
-                              font-size: 12px;
-                              line-height: 1.6;
-                              color: #166534;
-                            "
-                          >
-                            <strong>Your account is protected.</strong><br />
-                            Never share this verification link with anyone.
-                            Girum Hotel will never ask for your password by email.
-                          </td>
-                        </tr>
-                      </table>
-                    </div>
-
-                  </td>
-                </tr>
-
-                <tr>
-                  <td
-                    style="
-                      padding: 24px 40px;
-                      background-color: #fafaf9;
-                      border-top: 1px solid #e7e5e4;
-                    "
-                  >
-
-                    <p
-                      style="
-                        margin: 0;
-                        font-size: 12px;
-                        line-height: 1.6;
-                        color: #78716c;
-                        text-align: center;
-                      "
-                    >
-                      Didn't create this account?
-                      <a
-                        href="mailto:support@girumhotel.com"
-                        style="
-                          color: #a16207;
-                          font-weight: 600;
-                          text-decoration: none;
-                        "
-                      >
-                        Contact support
-                      </a>
-                    </p>
-
-                    <p
-                      style="
-                        margin: 12px 0 0;
-                        font-size: 11px;
-                        line-height: 1.5;
-                        color: #a8a29e;
-                        text-align: center;
-                      "
-                    >
-                      © ${new Date().getFullYear()} Girum Hotel
-                      · Fiche, Ethiopia
-                    </p>
-
-                  </td>
-                </tr>
-
-              </table>
-
-              <!-- Bottom branding -->
-              <p
-                style="
-                  margin: 20px 0 0;
-                  font-size: 11px;
-                  color: #a8a29e;
-                  text-align: center;
-                "
-              >
-                Secure account verification
+              <p style="
+                color: #475569;
+                line-height: 1.6;
+              ">
+                Welcome to Girum Hotel.
+                Please verify your email address to continue
+                setting up your owner account.
               </p>
 
-            </td>
-          </tr>
-        </table>
+              <div style="margin: 30px 0;">
+                <a
+                  href="${verificationUrl}"
+                  style="
+                    display: inline-block;
+                    padding: 12px 24px;
+                    background: #0f172a;
+                    color: #ffffff;
+                    text-decoration: none;
+                    border-radius: 8px;
+                    font-weight: 600;
+                  "
+                >
+                  Verify Email
+                </a>
+              </div>
 
-      </body>
-    </html>
-  `,
+              <p style="
+                color: #64748b;
+                font-size: 14px;
+                line-height: 1.6;
+              ">
+                This verification link will expire in 1 hour.
+              </p>
+
+              <p style="
+                color: #94a3b8;
+                font-size: 12px;
+                margin-top: 30px;
+              ">
+                If you did not request this account,
+                you can safely ignore this email.
+              </p>
+            </div>
+          </body>
+        </html>
+      `,
     });
-  } catch (err) {
-    await userRepo.deleteById(owner._id);
-    logger.error("Error sendind email.");
-    throw err;
+
+    await session.commitTransaction();
+
+    logger.info("Owner setup verification email sent", {
+      userId: owner._id,
+      role: owner.role,
+      email: owner.email,
+      verificationTokenId: verificationToken._id,
+    });
+
+    const { password: _, ...user } = owner.toObject();
+
+    return user.email;
+  } catch (error) {
+    if (session.inTransaction()) {
+      await session.abortTransaction();
+    }
+
+    logger.error("Owner setup failed", {
+      email,
+      error: error.message,
+    });
+
+    throw error;
+  } finally {
+    await session.endSession();
   }
-
-  logger.info("Owner setup verification email sent", {
-    userId: owner._id,
-    role: owner.role,
-  });
-
-  const { password: _, ...user } = owner.toObject();
-
-  return user.email;
 };
+
+/* ============================================================
+   VERIFY OWNER EMAIL
+   ============================================================ */
 
 export const verifyOwnerEmailService = async (token) => {
   const tokenHash = hashToken(token);
@@ -785,57 +531,119 @@ export const verifyOwnerEmailService = async (token) => {
     throw new AppError("Invalid or expired token.", 401, "INVALID_TOKEN");
   }
 
-  ownerExist.isVerified = true;
-  await ownerExist.save();
+  const session = await mongoose.startSession();
 
-  tokenExist.usedAt = new Date();
-  await tokenExist.save();
+  try {
+    session.startTransaction();
 
-  ownerExist.lastLoginAt = new Date();
-  await ownerExist.save();
+    ownerExist.isVerified = true;
+    await ownerExist.save({ session });
 
-  const { password: _, ...user } = ownerExist.toObject();
+    tokenExist.usedAt = new Date();
+    await tokenExist.save({ session });
 
-  const { accessToken, refreshToken } = generateBothTokens({
-    userId: user._id,
-    role: user.role,
-    accountType: user.role === "guest" ? "guest" : "staff",
-  });
+    ownerExist.lastLoginAt = new Date();
+    await ownerExist.save({ session });
 
-  logger.info("Owner email verified successfully", {
-    userId: ownerExist._id,
-    role: ownerExist.role,
-  });
+    await session.commitTransaction();
 
-  return {
-    user,
-    accessToken,
-    refreshToken,
-  };
-};
+    const { password: _, ...user } = ownerExist.toObject();
 
-// TODO: To complete this service first create staff model and repository.
-export const completeSetupService = async (data, userId) => {
-  const staffExist = await staffRepo.findOne({ phone: data.phone });
-  if (staffExist) {
-    throw new AppError("Staff already exist.", 409, "STAFF_EXIST");
+    const { accessToken, refreshToken } = generateBothTokens({
+      userId: user._id,
+      role: user.role,
+      accountType: user.role === "guest" ? "guest" : "staff",
+    });
+
+    logger.info("Owner email verified successfully", {
+      userId: ownerExist._id,
+      role: ownerExist.role,
+    });
+
+    return {
+      user,
+      accessToken,
+      refreshToken,
+    };
+  } catch (error) {
+    if (session.inTransaction()) {
+      await session.abortTransaction();
+    }
+
+    logger.error("Owner email verification failed", {
+      userId: ownerExist._id,
+      error: error.message,
+    });
+
+    throw error;
+  } finally {
+    await session.endSession();
   }
-  const user = await userRepo.findById(userId);
-
-  const newStaff = await staffRepo.create({
-    user: userId,
-    firstName: data.firstName,
-    lastName: data.lastName,
-    role: user.role,
-    phone: data.phone,
-  });
-
-  user.requireSetup = false;
-  await user.save();
-
-  return newStaff;
 };
 
+/* ============================================================
+   COMPLETE OWNER/STAFF PROFILE SETUP
+   ============================================================ */
+
+export const completeSetupService = async (data, userId) => {
+  const session = await mongoose.startSession();
+
+  try {
+    session.startTransaction();
+
+    const staffExist = await staffRepo.findOne(
+      { phone: data.phone },
+      { session },
+    );
+
+    if (staffExist) {
+      throw new AppError("Staff already exist.", 409, "STAFF_EXIST");
+    }
+
+    const user = await userRepo.findById(userId, { session });
+
+    if (!user) {
+      throw new AppError("User not found.", 404, "USER_NOT_FOUND");
+    }
+
+    const newStaff = await staffRepo.create(
+      {
+        user: userId,
+        firstName: data.firstName,
+        lastName: data.lastName,
+        role: user.role,
+        phone: data.phone,
+      },
+      { session },
+    );
+
+    user.requireSetup = false;
+    await user.save({ session });
+
+    await session.commitTransaction();
+
+    return newStaff;
+  } catch (error) {
+    if (session.inTransaction()) {
+      await session.abortTransaction();
+    }
+
+    logger.error("Complete setup failed", {
+      userId,
+      error: error.message,
+    });
+
+    throw error;
+  } finally {
+    await session.endSession();
+  }
+};
+
+/* ============================================================
+   STAFF SETUP / INVITATION
+   ============================================================ */
+   //TODO: Use this after deployement and got domain.
+/*
 export const setupStaffService = async (data, ownerId) => {
   const owner = await userRepo.findById(ownerId);
 
@@ -847,7 +655,7 @@ export const setupStaffService = async (data, ownerId) => {
     throw new AppError(
       "Only an owner can set up staff.",
       403,
-      "OWNER_REQUIRED",
+      "FORBIDDEN",
     );
   }
 
@@ -862,225 +670,349 @@ export const setupStaffService = async (data, ownerId) => {
 
   const expiresAt = new Date(Date.now() + 1000 * 60 * 60 * 24);
 
-  const newStaffUser = await userRepo.create({
-    email: data.email,
-    password: "12345678",
-    role: data.role,
-    requireSetup: true,
-    isVerified: false,
+  const hashedPassword = await hashPassword("12345678");
 
-    invitationToken: hashedToken,
-    invitationTokenExpiresAt: expiresAt,
-  });
-
-  const verificationUrl = `${env.frontendUrl}/setup/staff/verify?token=${rawToken}`;
+  const session = await mongoose.startSession();
 
   try {
+    session.startTransaction();
+
+    const newStaffUser = await userRepo.create(
+      {
+        email: data.email,
+        password: hashedPassword,
+        role: data.role,
+        requireSetup: true,
+        isVerified: false,
+
+        invitationToken: hashedToken,
+        invitationTokenExpiresAt: expiresAt,
+      },
+      { session },
+    );
+
+    const verificationUrl = `${env.frontendUrl}/setup/staff/verify?token=${rawToken}`;
+
     await sendEmail({
       subject: "Complete your staff account setup",
       to: data.email,
       html: `
-      <!DOCTYPE html>
-      <html lang="en">
-      <head>
-        <meta charset="UTF-8" />
-        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-        <title>Complete your account setup</title>
-      </head>
+        <!DOCTYPE html>
+        <html lang="en">
+        <head>
+          <meta charset="UTF-8" />
+          <meta
+            name="viewport"
+            content="width=device-width, initial-scale=1.0"
+          />
+          <title>Complete your account setup</title>
+        </head>
 
-      <body style="
-        margin: 0;
-        padding: 0;
-        background-color: #f4f6f8;
-        font-family: Arial, Helvetica, sans-serif;
-        color: #17202a;
-      ">
+        <body style="
+          margin: 0;
+          padding: 0;
+          background-color: #f4f6f8;
+          font-family: Arial, Helvetica, sans-serif;
+          color: #17202a;
+        ">
 
-        <table
-          role="presentation"
-          width="100%"
-          cellspacing="0"
-          cellpadding="0"
-          border="0"
-          style="background-color: #f4f6f8; padding: 40px 16px;"
-        >
-          <tr>
-            <td align="center">
+          <table
+            role="presentation"
+            width="100%"
+            cellspacing="0"
+            cellpadding="0"
+            border="0"
+            style="
+              background-color: #f4f6f8;
+              padding: 40px 16px;
+            "
+          >
+            <tr>
+              <td align="center">
 
-              <table
-                role="presentation"
-                width="100%"
-                cellspacing="0"
-                cellpadding="0"
-                border="0"
-                style="
-                  max-width: 560px;
-                  background-color: #ffffff;
-                  border-radius: 20px;
-                  overflow: hidden;
-                "
-              >
+                <table
+                  role="presentation"
+                  width="100%"
+                  cellspacing="0"
+                  cellpadding="0"
+                  border="0"
+                  style="
+                    max-width: 560px;
+                    background-color: #ffffff;
+                    border-radius: 20px;
+                    overflow: hidden;
+                  "
+                >
 
-                <tr>
-                  <td
-                    align="center"
-                    style="
-                      padding: 36px 32px 24px;
-                      background-color: #111827;
-                    "
-                  >
-                    <div style="
-                      font-size: 14px;
-                      font-weight: 700;
-                      letter-spacing: 2px;
-                      text-transform: uppercase;
-                      color: #ffffff;
-                    ">
-                      HOTEL MANAGEMENT
-                    </div>
-                  </td>
-                </tr>
-
-                <tr>
-                  <td style="padding: 44px 40px 36px;">
-
-                    <div style="
-                      width: 64px;
-                      height: 64px;
-                      line-height: 64px;
-                      margin: 0 auto 24px;
-                      text-align: center;
-                      border-radius: 50%;
-                      background-color: #eef2ff;
-                      font-size: 28px;
-                    ">
-                      ✉️
-                    </div>
-
-                    <h1 style="
-                      margin: 0 0 16px;
-                      text-align: center;
-                      font-size: 30px;
-                      line-height: 1.2;
-                      font-weight: 700;
-                      color: #111827;
-                    ">
-                      Complete your account setup
-                    </h1>
-
-                    <p style="
-                      margin: 0 auto 28px;
-                      max-width: 420px;
-                      text-align: center;
-                      font-size: 16px;
-                      line-height: 1.7;
-                      color: #6b7280;
-                    ">
-                      You have been invited to join the hotel management
-                      system. Verify your email and create your password
-                      to activate your staff account.
-                    </p>
-
-                    <table
-                      role="presentation"
-                      width="100%"
-                      cellspacing="0"
-                      cellpadding="0"
-                      border="0"
+                  <tr>
+                    <td
+                      align="center"
+                      style="
+                        padding: 36px 32px 24px;
+                        background-color: #111827;
+                      "
                     >
-                      <tr>
-                        <td align="center">
+                      <div style="
+                        font-size: 14px;
+                        font-weight: 700;
+                        letter-spacing: 2px;
+                        text-transform: uppercase;
+                        color: #ffffff;
+                      ">
+                        HOTEL MANAGEMENT
+                      </div>
+                    </td>
+                  </tr>
 
-                          <a
-                            href="${verificationUrl}"
-                            style="
-                              display: inline-block;
-                              padding: 16px 32px;
-                              background-color: #111827;
-                              color: #ffffff;
-                              text-decoration: none;
-                              font-size: 16px;
-                              font-weight: 700;
-                              border-radius: 10px;
-                            "
-                          >
-                            Verify Email →
-                          </a>
+                  <tr>
+                    <td style="padding: 44px 40px 36px;">
 
-                        </td>
-                      </tr>
-                    </table>
+                      <div style="
+                        width: 64px;
+                        height: 64px;
+                        line-height: 64px;
+                        margin: 0 auto 24px;
+                        text-align: center;
+                        border-radius: 50%;
+                        background-color: #eef2ff;
+                        font-size: 28px;
+                      ">
+                        ✉️
+                      </div>
 
-                    <div style="
-                      margin-top: 28px;
-                      padding: 14px 16px;
+                      <h1 style="
+                        margin: 0 0 16px;
+                        text-align: center;
+                        font-size: 30px;
+                        line-height: 1.2;
+                        font-weight: 700;
+                        color: #111827;
+                      ">
+                        Complete your account setup
+                      </h1>
+
+                      <p style="
+                        margin: 0 auto 28px;
+                        max-width: 420px;
+                        text-align: center;
+                        font-size: 16px;
+                        line-height: 1.7;
+                        color: #6b7280;
+                      ">
+                        You have been invited to join the hotel management
+                        system. Verify your email and create your password
+                        to activate your staff account.
+                      </p>
+
+                      <table
+                        role="presentation"
+                        width="100%"
+                        cellspacing="0"
+                        cellpadding="0"
+                        border="0"
+                      >
+                        <tr>
+                          <td align="center">
+
+                            <a
+                              href="${verificationUrl}"
+                              style="
+                                display: inline-block;
+                                padding: 16px 32px;
+                                background-color: #111827;
+                                color: #ffffff;
+                                text-decoration: none;
+                                font-size: 16px;
+                                font-weight: 700;
+                                border-radius: 10px;
+                              "
+                            >
+                              Verify Email →
+                            </a>
+
+                          </td>
+                        </tr>
+                      </table>
+
+                      <div style="
+                        margin-top: 28px;
+                        padding: 14px 16px;
+                        background-color: #f9fafb;
+                        border-radius: 10px;
+                        text-align: center;
+                      ">
+                        <p style="
+                          margin: 0;
+                          font-size: 13px;
+                          line-height: 1.5;
+                          color: #6b7280;
+                        ">
+                          ⏱ This invitation expires in
+                          <strong style="color: #374151;">
+                            1 day.
+                          </strong>
+                        </p>
+                      </div>
+
+                    </td>
+                  </tr>
+
+                  <tr>
+                    <td style="
+                      padding: 24px 32px;
                       background-color: #f9fafb;
-                      border-radius: 10px;
-                      text-align: center;
+                      border-top: 1px solid #e5e7eb;
                     ">
                       <p style="
                         margin: 0;
-                        font-size: 13px;
-                        line-height: 1.5;
-                        color: #6b7280;
+                        text-align: center;
+                        font-size: 12px;
+                        line-height: 1.6;
+                        color: #9ca3af;
                       ">
-                        ⏱ This invitation expires in
-                        <strong style="color: #374151;">
-                          1 day.
-                        </strong>
+                        If you didn't expect this invitation,
+                        you can safely ignore this email.
                       </p>
-                    </div>
+                    </td>
+                  </tr>
 
-                  </td>
-                </tr>
+                </table>
 
-                <tr>
-                  <td style="
-                    padding: 24px 32px;
-                    background-color: #f9fafb;
-                    border-top: 1px solid #e5e7eb;
-                  ">
-                    <p style="
-                      margin: 0;
-                      text-align: center;
-                      font-size: 12px;
-                      line-height: 1.6;
-                      color: #9ca3af;
-                    ">
-                      If you didn't expect this invitation,
-                      you can safely ignore this email.
-                    </p>
-                  </td>
-                </tr>
+                <p style="
+                  margin: 24px 0 0;
+                  text-align: center;
+                  font-size: 12px;
+                  color: #9ca3af;
+                ">
+                  © ${new Date().getFullYear()}
+                  Hotel Management System
+                </p>
 
-              </table>
+              </td>
+            </tr>
+          </table>
 
-              <p style="
-                margin: 24px 0 0;
-                text-align: center;
-                font-size: 12px;
-                color: #9ca3af;
-              ">
-                © ${new Date().getFullYear()} Hotel Management System
-              </p>
-
-            </td>
-          </tr>
-        </table>
-
-      </body>
-      </html>
-    `,
+        </body>
+        </html>
+      `,
     });
+
+    await session.commitTransaction();
+
+    logger.info("Staff invitation sent successfully", {
+      userId: newStaffUser._id,
+      email: newStaffUser.email,
+      role: newStaffUser.role,
+    });
+
+    return newStaffUser.email;
   } catch (error) {
-    await userRepo.deleteById(newStaffUser._id);
+    if (session.inTransaction()) {
+      await session.abortTransaction();
+    }
+
+    logger.error("Staff setup failed", {
+      ownerId,
+      email: data.email,
+      error: error.message,
+    });
+
     throw error;
+  } finally {
+    await session.endSession();
+  }
+};
+*/
+
+export const setupStaffService = async (data, creatorId) => {
+  const creator = await userRepo.findById(creatorId);
+
+  if (!creator) {
+    throw new AppError(
+      "User not found.",
+      404,
+      "USER_NOT_FOUND",
+    );
   }
 
-  return newStaffUser.email;
+  const staffExist = await userRepo.findByEmail(data.email);
+
+  if (staffExist) {
+    throw new AppError(
+      "Email already exists.",
+      409,
+      "USER_EXISTS",
+    );
+  }
+
+  const rawToken = generateToken();
+  const hashedToken = hashToken(rawToken);
+
+  const expiresAt = new Date(
+    Date.now() + 1000 * 60 * 60 * 24,
+  );
+  const defaultPassword = await hashPassword("12345678")
+
+  const invitationUrl =
+    `${env.frontendUrl}/setup/staff/verify?token=${encodeURIComponent(
+      rawToken,
+    )}`;
+
+  const session = await mongoose.startSession();
+
+  try {
+    session.startTransaction();
+
+    const newStaffUser = await userRepo.create(
+      {
+        email: data.email,
+        role: data.role,
+        password: defaultPassword,
+        requireSetup: true,
+        isVerified: false,
+        invitationToken: hashedToken,
+        invitationTokenExpiresAt: expiresAt,
+        activeInvitationUrl: invitationUrl,
+      },
+      { session },
+    );
+
+    await session.commitTransaction();
+
+    logger.info("Staff invitation created successfully", {
+      userId: newStaffUser._id,
+      email: newStaffUser.email,
+      role: newStaffUser.role,
+      createdBy: creatorId,
+    });
+
+    return {
+      email: newStaffUser.email,
+      role: newStaffUser.role,
+      invitationUrl,
+      expiresAt,
+    };
+  } catch (error) {
+    if (session.inTransaction()) {
+      await session.abortTransaction();
+    }
+
+    logger.error("Staff setup failed", {
+      creatorId,
+      email: data.email,
+      error: error.message,
+    });
+
+    throw error;
+  } finally {
+    await session.endSession();
+  }
 };
 
-//Staff will send new password with verification token.
+/* ============================================================
+   VERIFY STAFF EMAIL
+   ============================================================ */
+
 export const verifyStaffEmailService = async (data, token) => {
   if (!token) {
     throw new AppError(
@@ -1131,13 +1063,14 @@ export const verifyStaffEmailService = async (data, token) => {
     );
   }
 
-  staff.password = data.password;
+  staff.password = await hashPassword(data.password);
+
   staff.isVerified = true;
   staff.requireSetup = true;
 
-  // Invalidate invitation token
   staff.invitationToken = null;
   staff.invitationTokenExpiresAt = null;
+  staff.activeInvitationUrl = null;
 
   staff.lastLoginAt = new Date();
 
@@ -1148,6 +1081,7 @@ export const verifyStaffEmailService = async (data, token) => {
   delete user.password;
   delete user.invitationToken;
   delete user.invitationTokenExpiresAt;
+  delete user.activeInvitationUrl;
 
   const { accessToken, refreshToken } = generateBothTokens({
     userId: user._id,

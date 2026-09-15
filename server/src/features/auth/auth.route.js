@@ -4,6 +4,7 @@ import {
   completeSetup,
   guestLogin,
   guestSignup,
+  logout,
   refreshToken,
   setupOwner,
   setupStaff,
@@ -61,5 +62,7 @@ authRouter.post(
   validate(createStaffValidator),
   completeSetup,
 );
+
+authRouter.post("/logout", authenticate, logout);
 
 export default authRouter;
