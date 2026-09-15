@@ -435,6 +435,14 @@ export default function DatePicker({
           aria-haspopup="dialog"
           aria-expanded={isOpen}
           aria-controls={isOpen ? popoverId : undefined}
+          aria-invalid={Boolean(error)}
+          aria-describedby={
+            error
+              ? `${pickerId}-error`
+              : helperText
+              ? `${pickerId}-helper`
+              : undefined
+          }
           aria-label={label ? `${label}, selected date: ${displayString || "none"}` : `Select date, currently: ${displayString || "none"}`}
           className={`w-full text-sm bg-white rounded-xl border transition-all duration-150 py-2.5 px-3.5 text-left flex items-center justify-between select-none cursor-pointer focus:outline-none focus:ring-2 focus:ring-offset-0 disabled:bg-slate-50 disabled:text-slate-400 disabled:cursor-not-allowed ${
             leftIcon || true ? "pl-10" : ""
@@ -480,9 +488,17 @@ export default function DatePicker({
 
       {/* Helper / Error Text */}
       {error ? (
-        <p className="text-xs text-rose-500 font-medium tracking-tight mt-0.5">{error}</p>
+        <p
+          id={`${pickerId}-error`}
+          role="alert"
+          className="text-xs text-rose-500 font-medium tracking-tight mt-0.5"
+        >
+          {error}
+        </p>
       ) : helperText ? (
-        <p className="text-xs text-slate-500 mt-0.5">{helperText}</p>
+        <p id={`${pickerId}-helper`} className="text-xs text-slate-500 mt-0.5">
+          {helperText}
+        </p>
       ) : null}
 
       {/* Calendar Popover */}

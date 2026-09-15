@@ -9,6 +9,7 @@ import Button from "@/components/ui/Button";
 import { KeyRound, Lock, Eye, EyeOff, User, Phone, CheckCircle2, ArrowRight } from "lucide-react";
 import Image from "next/image";
 import { HOTEL } from "@/constants/hotel";
+import { scrollToFirstError } from "@/utils/scrollToFormError";
 
 function StaffVerifyContent() {
   const searchParams = useSearchParams();
@@ -53,7 +54,11 @@ function StaffVerifyContent() {
     }
 
     setErrors(errs);
-    return Object.keys(errs).length === 0;
+    if (Object.keys(errs).length > 0) {
+      scrollToFirstError(errs);
+      return false;
+    }
+    return true;
   };
 
   const handleVerifyStaff = async (e) => {
@@ -68,7 +73,7 @@ function StaffVerifyContent() {
       });
       setStep(2);
     } catch (err) {
-      // Handled by AuthContext toast
+      scrollToFirstError(err);
     } finally {
       setIsVerifying(false);
     }
@@ -85,7 +90,11 @@ function StaffVerifyContent() {
     }
 
     setProfileErrors(errs);
-    return Object.keys(errs).length === 0;
+    if (Object.keys(errs).length > 0) {
+      scrollToFirstError(errs);
+      return false;
+    }
+    return true;
   };
 
   const handleCompleteProfile = async (e) => {
@@ -100,7 +109,7 @@ function StaffVerifyContent() {
         phone: profileData.phone.trim(),
       });
     } catch (err) {
-      // Handled by AuthContext toast
+      scrollToFirstError(err);
     } finally {
       setIsSubmittingProfile(false);
     }

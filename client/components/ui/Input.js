@@ -51,6 +51,14 @@ export default function Input({
           placeholder={placeholder}
           required={required}
           disabled={disabled}
+          aria-invalid={Boolean(error)}
+          aria-describedby={
+            error
+              ? `${inputId}-error`
+              : helperText
+              ? `${inputId}-helper`
+              : undefined
+          }
           className={`w-full text-sm bg-white rounded-xl border transition-all duration-150 py-2.5 px-3.5 text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-offset-0 disabled:bg-slate-50 disabled:text-slate-400 disabled:cursor-not-allowed ${
             leftIcon ? "pl-10" : ""
           } ${rightIcon ? "pr-10" : ""} ${
@@ -69,9 +77,20 @@ export default function Input({
       </div>
 
       {error ? (
-        <p className="text-xs text-rose-500 font-medium tracking-tight mt-0.5">{error}</p>
+        <p
+          id={`${inputId}-error`}
+          role="alert"
+          className="text-xs text-rose-500 font-medium tracking-tight mt-0.5"
+        >
+          {error}
+        </p>
       ) : helperText ? (
-        <p className="text-xs text-slate-500 mt-0.5">{helperText}</p>
+        <p
+          id={`${inputId}-helper`}
+          className="text-xs text-slate-500 mt-0.5"
+        >
+          {helperText}
+        </p>
       ) : null}
     </div>
   );

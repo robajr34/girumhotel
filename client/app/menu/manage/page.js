@@ -16,6 +16,7 @@ import { TableRowSkeleton } from "@/components/ui/Skeleton";
 import menuApi from "@/services/menuApi";
 import { getErrorMessage } from "@/services/api";
 import { toast } from "sonner";
+import { scrollToFirstError } from "@/utils/scrollToFormError";
 import {
   Utensils,
   Plus,
@@ -138,7 +139,11 @@ export default function ManageMenuPage() {
       errs.preparationTime = "Prep time must be positive";
 
     setFormErrors(errs);
-    return Object.keys(errs).length === 0;
+    if (Object.keys(errs).length > 0) {
+      scrollToFirstError(errs);
+      return false;
+    }
+    return true;
   };
 
   const handleFormSubmit = async (e) => {
@@ -168,6 +173,7 @@ export default function ManageMenuPage() {
       fetchMenu();
     } catch (err) {
       toast.error(getErrorMessage(err));
+      scrollToFirstError(err);
     } finally {
       setSubmitting(false);
     }

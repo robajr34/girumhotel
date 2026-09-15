@@ -15,6 +15,7 @@ import { TableRowSkeleton } from "@/components/ui/Skeleton";
 import guestApi from "@/services/guestApi";
 import { getErrorMessage } from "@/services/api";
 import { toast } from "sonner";
+import { scrollToFirstError } from "@/utils/scrollToFormError";
 import {
   Users,
   Search,
@@ -31,13 +32,13 @@ import {
 } from "lucide-react";
 
 export default function GuestsPage() {
-  const { role } = useAuth();
+  const { user, role } = useAuth();
 
   const [guests, setGuests] = useState([]);
   const [meta, setMeta] = useState({ page: 1, totalPages: 1, total: 0 });
   const [loading, setLoading] = useState(true);
 
-  const [search, setSearch] = useState("");
+  const [searchTerm, setSearchTerm] = useState("");
   const [page, setPage] = useState(1);
 
   // View Modal
@@ -57,6 +58,7 @@ export default function GuestsPage() {
     emergencyContactName: "",
     emergencyContactPhone: "",
   });
+  const [editErrors, setEditErrors] = useState({});
   const [isUpdating, setIsUpdating] = useState(false);
 
   const fetchGuests = async () => {
@@ -69,13 +71,13 @@ export default function GuestsPage() {
         sortOrder: "desc",
       };
 
-      if (search.trim()) {
-        query.search = search.trim();
+      if (searchTerm.trim()) {
+        query.search = searchTerm.trim();
       }
 
       const res = await guestApi.getAllGuests(query);
       const data = res.data?.data;
-      setGuests(data?.guests || []);
+      setGuests(data?.guests || res.data?.data || []);
       setMeta(data?.meta || { page: 1, totalPages: 1, total: 0 });
     } catch (err) {
       toast.error(getErrorMessage(err));
@@ -112,12 +114,32 @@ export default function GuestsPage() {
       emergencyContactName: guest.emergencyContactName || "",
       emergencyContactPhone: guest.emergencyContactPhone || "",
     });
+    setEditErrors({});
     setEditModalOpen(true);
+  };
+
+  const validateEdit = () => {
+    const errs = {};
+    if (!editFormData.firstName.trim()) errs.firstName = "First name is required";
+    if (!editFormData.lastName.trim()) errs.lastName = "Last name is required";
+    if (!editFormData.phone.trim()) {
+      errs.phone = "Phone number is required";
+    } else if (editFormData.phone.trim().length < 7) {
+      errs.phone = "Please enter a valid phone number";
+    }
+
+    setEditErrors(errs);
+    if (Object.keys(errs).length > 0) {
+      scrollToFirstError(errs);
+      return false;
+    }
+    return true;
   };
 
   const handleEditSubmit = async (e) => {
     e.preventDefault();
     if (!selectedGuest) return;
+    if (!validateEdit()) return;
 
     try {
       setIsUpdating(true);
@@ -127,6 +149,7 @@ export default function GuestsPage() {
       fetchGuests();
     } catch (err) {
       toast.error(getErrorMessage(err));
+      scrollToFirstError(err);
     } finally {
       setIsUpdating(false);
     }
@@ -358,7 +381,11 @@ export default function GuestsPage() {
                 id="firstName"
                 required
                 value={editFormData.firstName}
-                onChange={(e) => setEditFormData({ ...editFormData, firstName: e.target.value })}
+                onChange={(e) => {
+                  setEditFormData({ ...editFormData, firstName: e.target.value });
+                  if (editErrors.firstName) setEditErrors({ ...editErrors, firstName: null });
+                }}
+                error={editErrors.firstName}
               />
 
               <Input
@@ -366,7 +393,11 @@ export default function GuestsPage() {
                 id="lastName"
                 required
                 value={editFormData.lastName}
-                onChange={(e) => setEditFormData({ ...editFormData, lastName: e.target.value })}
+                onChange={(e) => {
+                  setEditFormData({ ...editFormData, lastName: e.target.value });
+                  if (editErrors.lastName) setEditErrors({ ...editErrors, lastName: null });
+                }}
+                error={editErrors.lastName}
               />
             </div>
 
@@ -376,7 +407,11 @@ export default function GuestsPage() {
                 id="phone"
                 required
                 value={editFormData.phone}
-                onChange={(e) => setEditFormData({ ...editFormData, phone: e.target.value })}
+                onChange={(e) => {
+                  setEditFormData({ ...editFormData, phone: e.target.value });
+                  if (editErrors.phone) setEditErrors({ ...editErrors, phone: null });
+                }}
+                error={editErrors.phone}
               />
 
               <Input

@@ -16,6 +16,7 @@ import {
   ArrowRight,
 } from "lucide-react";
 import Image from "next/image";
+import { scrollToFirstError } from "@/utils/scrollToFormError";
 
 export default function SignupPage() {
   const { signup } = useAuth();
@@ -47,7 +48,11 @@ export default function SignupPage() {
     }
 
     setErrors(errs);
-    return Object.keys(errs).length === 0;
+    if (Object.keys(errs).length > 0) {
+      scrollToFirstError(errs);
+      return false;
+    }
+    return true;
   };
 
   const handleSubmit = async (e) => {
@@ -61,7 +66,7 @@ export default function SignupPage() {
         password: formData.password,
       });
     } catch (err) {
-      // Handled by AuthContext toast
+      scrollToFirstError(err);
     } finally {
       setIsSubmitting(false);
     }

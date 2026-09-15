@@ -161,7 +161,7 @@ export default function RoomDetailPage({ params }) {
 
               {/* Gallery Thumbnails */}
               {images.length > 1 && (
-                <div className="flex items-center gap-3 overflow-x-auto pb-2 scrollbar-none">
+                <div className="flex items-center gap-3 overflow-x-auto p-2 scrollbar-none">
                   {images.map((imgUrl, idx) => {
                     const isSelected = idx === selectedImageIdx;
                     return (
@@ -169,11 +169,10 @@ export default function RoomDetailPage({ params }) {
                         key={`${room._id}-thumb-${idx}`}
                         type="button"
                         onClick={() => setSelectedImageIdx(idx)}
-                        className={`relative h-20 w-24 shrink-0 rounded-xl overflow-hidden border-2 transition-all cursor-pointer ${
-                          isSelected
-                            ? "border-[#b48c58] ring-2 ring-[#b48c58]/30 scale-105"
-                            : "border-transparent opacity-70 hover:opacity-100"
-                        }`}
+                        className={`relative flex items-center justify-center h-20 w-24 shrink-0 rounded-xl overflow-hidden border-2 transition-all cursor-pointer ${isSelected
+                          ? "border-[#b48c58] ring-2 ring-[#b48c58]/30 scale-105"
+                          : "border-transparent opacity-70 hover:opacity-100"
+                          }`}
                         aria-label={`View photo ${idx + 1} of Room ${room.roomNumber}`}
                         aria-selected={isSelected}
                       >

@@ -29,9 +29,10 @@ import {
   ArrowRight,
   Filter
 } from "lucide-react";
+import { scrollToFirstError } from "@/utils/scrollToFormError";
 
 export default function StaffPage() {
-  const { role } = useAuth();
+  const { user, role } = useAuth();
 
   const [staffList, setStaffList] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -53,9 +54,7 @@ export default function StaffPage() {
   const fetchStaff = async () => {
     try {
       setLoading(true);
-      const query = {
-        limit: 50,
-      };
+      const query = {};
       if (roleFilter !== "all") {
         query.role = roleFilter;
       }
@@ -75,7 +74,9 @@ export default function StaffPage() {
   const handleInviteSubmit = async (e) => {
     e.preventDefault();
     if (!inviteEmail.trim() || !/\S+@\S+\.\S+/.test(inviteEmail)) {
+      const errs = { inviteEmail: "Please enter a valid email address", email: "Please enter a valid email address" };
       setInviteErrors({ email: "Please enter a valid email address" });
+      scrollToFirstError(errs);
       return;
     }
 
@@ -90,6 +91,7 @@ export default function StaffPage() {
       fetchStaff();
     } catch (err) {
       toast.error(getErrorMessage(err));
+      scrollToFirstError(err);
     } finally {
       setIsInviting(false);
     }
@@ -149,25 +151,36 @@ export default function StaffPage() {
           </div>
 
           {/* Role Filter Tabs */}
-          <div className="flex items-center gap-1.5 overflow-x-auto pb-2 sm:pb-0 bg-white p-4 rounded-2xl border border-slate-200/80 shadow-card">
-            <span className="text-xs font-semibold text-slate-400 mr-2 flex items-center gap-1">
-              <Filter className="h-3.5 w-3.5" />
-              Role:
+          <div className="flex min-h-[66px] items-center gap-1.5 overflow-x-auto rounded-2xl border border-slate-200/80 bg-white px-5">
+            <span className="mr-2 flex shrink-0 items-center gap-1.5 text-sm font-medium leading-none text-slate-400">
+              <Filter className="h-4 w-4 shrink-0" />
+              <span>Role:</span>
             </span>
-            {["all", "owner", "manager", "receptionist"].map((r) => (
-              <button
-                key={r}
-                type="button"
-                onClick={() => setRoleFilter(r)}
-                className={`px-3 py-1.5 text-xs font-semibold rounded-xl capitalize transition-all cursor-pointer ${
-                  roleFilter === r
-                    ? "bg-slate-900 text-white shadow-xs"
-                    : "bg-slate-100 text-slate-600 hover:bg-slate-200"
-                }`}
-              >
-                {r}
-              </button>
-            ))}
+
+            {[
+              { value: "all", label: "All" },
+              { value: "owner", label: "Owner" },
+              { value: "manager", label: "Manager" },
+              { value: "receptionist", label: "Receptionist" },
+            ].map(({ value, label }) => {
+              const isActive = roleFilter === value;
+
+              return (
+                <button
+                  key={value}
+                  type="button"
+                  onClick={() => setRoleFilter(value)}
+                  aria-pressed={isActive}
+                  className={`flex shrink-0 items-center justify-center rounded-xl px-3 py-1.5 text-xs font-semibold capitalize transition-all cursor-pointer ${
+                    isActive
+                      ? "bg-slate-900 text-white shadow-xs"
+                      : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+                  }`}
+                >
+                  {label}
+                </button>
+              );
+            })}
           </div>
 
           {/* Staff Table Card */}
@@ -196,7 +209,10 @@ export default function StaffPage() {
                   </thead>
                   <tbody className="divide-y divide-slate-100 text-xs">
                     {staffList.map((st) => (
-                      <tr key={st._id} className="hover:bg-slate-50/70 transition-colors">
+                      <tr
+                        key={st._id}
+                        className="hover:bg-slate-50/70 transition-colors"
+                      >
                         <td className="py-4 px-5">
                           <div className="flex items-center gap-3">
                             <div className="w-8 h-8 rounded-full bg-slate-100 text-slate-700 flex items-center justify-center font-bold text-xs">
@@ -251,7 +267,9 @@ export default function StaffPage() {
                   title="No staff records found"
                   description="Invite employees to assign management and receptionist permissions."
                   actionLabel={isOwner ? "Invite Staff" : undefined}
-                  onAction={isOwner ? () => setInviteModalOpen(true) : undefined}
+                  onAction={
+                    isOwner ? () => setInviteModalOpen(true) : undefined
+                  }
                 />
               </div>
             )}
@@ -269,7 +287,11 @@ export default function StaffPage() {
           maxWidth="md"
         >
           {!invitedSuccessEmail ? (
-            <form onSubmit={handleInviteSubmit} className="space-y-4" noValidate>
+            <form
+              onSubmit={handleInviteSubmit}
+              className="space-y-4"
+              noValidate
+            >
               <Input
                 label="Staff Email Address"
                 id="inviteEmail"
@@ -291,13 +313,23 @@ export default function StaffPage() {
                 value={inviteRole}
                 onChange={(e) => setInviteRole(e.target.value)}
                 options={[
-                  { value: "manager", label: "Manager (Full operations, rooms, bookings, guests)" },
-                  { value: "receptionist", label: "Receptionist (Bookings, room statuses, check-ins)" },
+                  {
+                    value: "manager",
+                    label: "Manager (Full operations, rooms, bookings, guests)",
+                  },
+                  {
+                    value: "receptionist",
+                    label: "Receptionist (Bookings, room statuses, check-ins)",
+                  },
                 ]}
               />
 
               <div className="p-3 rounded-xl bg-slate-50 border border-slate-100 text-xs text-slate-500">
-                <p>An activation link will be dispatched. The employee will verify their token, set their secure password, and complete their profile.</p>
+                <p>
+                  An activation link will be dispatched. The employee will
+                  verify their token, set their secure password, and complete
+                  their profile.
+                </p>
               </div>
 
               <div className="flex items-center justify-end gap-3 pt-3 border-t border-slate-100">
@@ -309,7 +341,12 @@ export default function StaffPage() {
                 >
                   Cancel
                 </Button>
-                <Button type="submit" variant="gold" isLoading={isInviting} rightIcon={<ArrowRight className="h-4 w-4" />}>
+                <Button
+                  type="submit"
+                  variant="gold"
+                  isLoading={isInviting}
+                  rightIcon={<ArrowRight className="h-4 w-4" />}
+                >
                   Send Invitation
                 </Button>
               </div>
@@ -324,7 +361,10 @@ export default function StaffPage() {
               </h3>
               <p className="text-xs text-slate-500 max-w-sm mx-auto leading-relaxed">
                 An invitation email has been sent to{" "}
-                <strong className="text-slate-800">{invitedSuccessEmail}</strong>.
+                <strong className="text-slate-800">
+                  {invitedSuccessEmail}
+                </strong>
+                .
               </p>
               <Button
                 variant="primary"

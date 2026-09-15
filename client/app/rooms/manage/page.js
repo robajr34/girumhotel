@@ -16,6 +16,7 @@ import { CardSkeleton, TableRowSkeleton } from "@/components/ui/Skeleton";
 import roomApi from "@/services/roomApi";
 import { getErrorMessage } from "@/services/api";
 import { toast } from "sonner";
+import { scrollToFirstError } from "@/utils/scrollToFormError";
 import {
   BedDouble,
   Plus,
@@ -161,7 +162,11 @@ export default function ManageRoomsPage() {
     if (formData.pricePerNight === "" || Number(formData.pricePerNight) <= 0) errs.pricePerNight = "Price must be greater than 0";
 
     setFormErrors(errs);
-    return Object.keys(errs).length === 0;
+    if (Object.keys(errs).length > 0) {
+      scrollToFirstError(errs);
+      return false;
+    }
+    return true;
   };
 
   const handleFormSubmit = async (e) => {
@@ -200,6 +205,7 @@ export default function ManageRoomsPage() {
       fetchRooms();
     } catch (err) {
       toast.error(getErrorMessage(err));
+      scrollToFirstError(err);
     } finally {
       setIsSubmitting(false);
     }

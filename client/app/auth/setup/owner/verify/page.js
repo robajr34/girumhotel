@@ -7,6 +7,7 @@ import { useAuth } from "@/context/AuthContext";
 import Input from "@/components/ui/Input";
 import Button from "@/components/ui/Button";
 import { KeyRound, User, Phone, CheckCircle2, ArrowRight } from "lucide-react";
+import { scrollToFirstError } from "@/utils/scrollToFormError";
 
 function OwnerVerifyContent() {
   const searchParams = useSearchParams();
@@ -42,7 +43,7 @@ function OwnerVerifyContent() {
       await verifyOwnerEmail(rawToken.trim());
       setStep(2);
     } catch (err) {
-      // Error handled by AuthContext toast
+      scrollToFirstError(err);
     } finally {
       setIsVerifying(false);
     }
@@ -60,7 +61,11 @@ function OwnerVerifyContent() {
     }
 
     setProfileErrors(errs);
-    return Object.keys(errs).length === 0;
+    if (Object.keys(errs).length > 0) {
+      scrollToFirstError(errs);
+      return false;
+    }
+    return true;
   };
 
   const handleCompleteProfile = async (e) => {
@@ -75,7 +80,7 @@ function OwnerVerifyContent() {
         phone: profileData.phone.trim(),
       });
     } catch (err) {
-      // Error handled by AuthContext toast
+      scrollToFirstError(err);
     } finally {
       setIsSubmittingProfile(false);
     }

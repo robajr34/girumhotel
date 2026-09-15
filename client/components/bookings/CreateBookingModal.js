@@ -12,6 +12,7 @@ import Select from "@/components/ui/Select";
 import DatePicker from "@/components/ui/DatePicker";
 import Button from "@/components/ui/Button";
 import { toast } from "sonner";
+import { scrollToFirstError } from "@/utils/scrollToFormError";
 import { Calendar, User, Phone, Globe, DollarSign, BedDouble, Info, ArrowRight, Landmark } from "lucide-react";
 import Link from "next/link";
 
@@ -126,13 +127,17 @@ export default function CreateBookingModal({
       errs.numberOfGuests = `Exceeds room capacity of ${activeRoom.capacity} guests`;
     }
 
-    setErrors(errs);
-    return Object.keys(errs).length === 0;
+    return errs;
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!validate()) return;
+    const errs = validate();
+    if (Object.keys(errs).length > 0) {
+      setErrors(errs);
+      scrollToFirstError(errs);
+      return;
+    }
 
     try {
       setSubmitting(true);
@@ -159,6 +164,7 @@ export default function CreateBookingModal({
     } catch (err) {
       const message = getErrorMessage(err);
       toast.error(message);
+      scrollToFirstError(err);
     } finally {
       setSubmitting(false);
     }

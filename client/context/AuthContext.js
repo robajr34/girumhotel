@@ -329,7 +329,7 @@ export function AuthProvider({ children }) {
 
       toast.success(
         response.data?.message ||
-        "Owner account created. Please check your email to verify your account.",
+          "Owner account created. Please check your email to verify your account.",
       );
 
       return response.data;

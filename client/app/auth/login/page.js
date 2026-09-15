@@ -8,6 +8,7 @@ import Button from "@/components/ui/Button";
 import { Mail, Lock, Eye, EyeOff, Hotel, ArrowRight } from "lucide-react";
 import { HOTEL } from "@/constants/hotel";
 import Image from "next/image";
+import { scrollToFirstError } from "@/utils/scrollToFormError";
 
 export default function LoginPage() {
   const { login } = useAuth();
@@ -32,7 +33,11 @@ export default function LoginPage() {
     }
 
     setErrors(errs);
-    return Object.keys(errs).length === 0;
+    if (Object.keys(errs).length > 0) {
+      scrollToFirstError(errs);
+      return false;
+    }
+    return true;
   };
 
   const handleSubmit = async (e) => {
@@ -46,7 +51,7 @@ export default function LoginPage() {
         password: formData.password,
       });
     } catch (err) {
-      // Handled by AuthContext toast
+      scrollToFirstError(err);
     } finally {
       setIsSubmitting(false);
     }

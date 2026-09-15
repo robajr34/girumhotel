@@ -225,6 +225,14 @@ export default function Select({
           aria-labelledby={label ? selectId : undefined}
           aria-disabled={disabled}
           disabled={disabled}
+          aria-invalid={Boolean(error)}
+          aria-describedby={
+            error
+              ? `${selectId}-error`
+              : helperText
+              ? `${selectId}-helper`
+              : undefined
+          }
           onClick={() => !disabled && setIsOpen((prev) => !prev)}
           onKeyDown={handleKeyDown}
           className={`w-full text-xs sm:text-sm bg-white rounded-xl border transition-all duration-150 py-2.5 px-3.5 text-left flex items-center justify-between cursor-pointer select-none ${
@@ -312,11 +320,17 @@ export default function Select({
 
       {/* Error / Helper Text */}
       {error ? (
-        <p className="text-xs text-rose-500 font-medium tracking-tight mt-0.5">
+        <p
+          id={`${selectId}-error`}
+          role="alert"
+          className="text-xs text-rose-500 font-medium tracking-tight mt-0.5"
+        >
           {error}
         </p>
       ) : helperText ? (
-        <p className="text-xs text-slate-500 mt-0.5">{helperText}</p>
+        <p id={`${selectId}-helper`} className="text-xs text-slate-500 mt-0.5">
+          {helperText}
+        </p>
       ) : null}
     </div>
   );

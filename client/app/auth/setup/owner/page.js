@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation";
 import Input from "@/components/ui/Input";
 import Button from "@/components/ui/Button";
 import { Mail, Lock, Eye, EyeOff, ShieldCheck, ArrowRight, CheckCircle2 } from "lucide-react";
+import { scrollToFirstError } from "@/utils/scrollToFormError";
 
 export default function OwnerSetupPage() {
   const { setupOwner } = useAuth();
@@ -40,7 +41,11 @@ export default function OwnerSetupPage() {
     }
 
     setErrors(errs);
-    return Object.keys(errs).length === 0;
+    if (Object.keys(errs).length > 0) {
+      scrollToFirstError(errs);
+      return false;
+    }
+    return true;
   };
 
   const handleSubmit = async (e) => {
@@ -55,7 +60,7 @@ export default function OwnerSetupPage() {
       });
       setCreatedEmail(formData.email.trim());
     } catch (err) {
-      // Handled by AuthContext toast
+      scrollToFirstError(err);
     } finally {
       setIsSubmitting(false);
     }

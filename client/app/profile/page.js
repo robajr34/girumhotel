@@ -23,6 +23,7 @@ import {
   User,
   CheckCircle2
 } from "lucide-react";
+import { scrollToFirstError } from "@/utils/scrollToFormError";
 
 export default function ProfilePage() {
   const { user, role, staffProfile, refreshUser } = useAuth();
@@ -74,7 +75,11 @@ export default function ProfilePage() {
     }
 
     setFormErrors(errs);
-    return Object.keys(errs).length === 0;
+    if (Object.keys(errs).length > 0) {
+      scrollToFirstError(errs);
+      return false;
+    }
+    return true;
   };
 
   const handleProfileSubmit = async (e) => {
@@ -94,6 +99,7 @@ export default function ProfilePage() {
       await refreshUser();
     } catch (err) {
       toast.error(getErrorMessage(err));
+      scrollToFirstError(err);
     } finally {
       setSaving(false);
     }
