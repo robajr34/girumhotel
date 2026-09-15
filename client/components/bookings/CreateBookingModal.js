@@ -9,6 +9,7 @@ import Modal from "@/components/ui/Modal";
 import BankDetailsModal from "@/components/BankDetailsModal";
 import Input from "@/components/ui/Input";
 import Select from "@/components/ui/Select";
+import DatePicker from "@/components/ui/DatePicker";
 import Button from "@/components/ui/Button";
 import { toast } from "sonner";
 import { Calendar, User, Phone, Globe, DollarSign, BedDouble, Info, ArrowRight, Landmark } from "lucide-react";
@@ -290,36 +291,43 @@ export default function CreateBookingModal({
               Stay Schedule & Guests
             </h4>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
-              <Input
+              <DatePicker
                 label="Check-In Date"
                 id="checkInDate"
                 name="checkInDate"
-                type="date"
                 required
-                min={new Date().toISOString().split("T")[0]}
+                minDate={new Date().toISOString().split("T")[0]}
                 value={formData.checkInDate}
                 onChange={(e) => {
-                  setFormData({ ...formData, checkInDate: e.target.value });
+                  const newCheckIn = e.target.value;
+                  const nextForm = { ...formData, checkInDate: newCheckIn };
+                  if (formData.checkOutDate && newCheckIn && formData.checkOutDate <= newCheckIn) {
+                    // Set checkout to the next day automatically
+                    const inDate = new Date(newCheckIn);
+                    inDate.setDate(inDate.getDate() + 1);
+                    const y = inDate.getFullYear();
+                    const m = String(inDate.getMonth() + 1).padStart(2, "0");
+                    const d = String(inDate.getDate()).padStart(2, "0");
+                    nextForm.checkOutDate = `${y}-${m}-${d}`;
+                  }
+                  setFormData(nextForm);
                   if (errors.checkInDate) setErrors({ ...errors, checkInDate: null });
                 }}
                 error={errors.checkInDate}
-                leftIcon={<Calendar className="h-4 w-4" />}
               />
 
-              <Input
+              <DatePicker
                 label="Check-Out Date"
                 id="checkOutDate"
                 name="checkOutDate"
-                type="date"
                 required
-                min={formData.checkInDate || new Date().toISOString().split("T")[0]}
+                minDate={formData.checkInDate || new Date().toISOString().split("T")[0]}
                 value={formData.checkOutDate}
                 onChange={(e) => {
                   setFormData({ ...formData, checkOutDate: e.target.value });
                   if (errors.checkOutDate) setErrors({ ...errors, checkOutDate: null });
                 }}
                 error={errors.checkOutDate}
-                leftIcon={<Calendar className="h-4 w-4" />}
               />
             </div>
 

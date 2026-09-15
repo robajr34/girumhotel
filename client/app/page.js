@@ -9,6 +9,7 @@ import Button from "@/components/ui/Button";
 import Badge from "@/components/ui/Badge";
 import Card from "@/components/ui/Card";
 import Select from "@/components/ui/Select";
+import DatePicker from "@/components/ui/DatePicker";
 import { Skeleton } from "@/components/ui/Skeleton";
 import OptimizedImage from "@/components/ui/OptimizedImage";
 import CreateBookingModal from "@/components/bookings/CreateBookingModal";
@@ -257,31 +258,31 @@ export default function LandingPage() {
               </div>
 
               <div>
-                <label className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5 block">
-                  Check In
-                </label>
-                <input
-                  type="date"
+                <DatePicker
+                  label="Check In"
+                  id="searchCheckIn"
+                  name="checkIn"
                   value={searchParams.checkIn}
-                  min={new Date().toISOString().split("T")[0]}
-                  onChange={(e) =>
-                    setSearchParams({
-                      ...searchParams,
-                      checkIn: e.target.value,
-                    })
-                  }
-                  className="w-full text-xs font-semibold bg-slate-50 rounded-xl border border-slate-200 py-3 px-3.5 text-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-900"
+                  minDate={new Date().toISOString().split("T")[0]}
+                  onChange={(e) => {
+                    const newCheckIn = e.target.value;
+                    const nextParams = { ...searchParams, checkIn: newCheckIn };
+                    if (searchParams.checkOut && newCheckIn && searchParams.checkOut <= newCheckIn) {
+                      nextParams.checkOut = "";
+                    }
+                    setSearchParams(nextParams);
+                  }}
+                  placeholder="Select check-in date"
                 />
               </div>
 
               <div>
-                <label className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5 block">
-                  Check Out
-                </label>
-                <input
-                  type="date"
+                <DatePicker
+                  label="Check Out"
+                  id="searchCheckOut"
+                  name="checkOut"
                   value={searchParams.checkOut}
-                  min={
+                  minDate={
                     searchParams.checkIn ||
                     new Date().toISOString().split("T")[0]
                   }
@@ -291,7 +292,7 @@ export default function LandingPage() {
                       checkOut: e.target.value,
                     })
                   }
-                  className="w-full text-xs font-semibold bg-slate-50 rounded-xl border border-slate-200 py-3 px-3.5 text-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-900"
+                  placeholder="Select check-out date"
                 />
               </div>
 
